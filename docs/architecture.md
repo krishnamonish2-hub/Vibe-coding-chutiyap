@@ -65,8 +65,8 @@ seeded PRNG `(run seed, meal index)`, so results do not depend on how time was a
 | Phase | Scope | Depends on |
 |---|---|---|
 | P1 | Foundation: backend + frontend skeletons, config, DB pool + migration runner, health endpoint, CI | Phase 0 |
-| P2 | Schema migration + seed (38 dishes, 1,000 students, admin + demo users) | P1 |
-| P3 | Auth, roles, dish rename, audit log service | P2 |
+| P2 | Schema migration (`backend/db/migrations/001_schema.sql`) + seed (38 dishes, 1,000 synthetic students) | P1 |
+| P3 | Auth, roles, admin + demo student accounts (needs password hashing), dish rename, audit log service | P2 |
 | P4 | Simulation engine (learning mode, no ML) + calibration tests | P2, P3 |
 | P5 | ML integration: client, request schema/builder, history, predictions, Day 31 activation, live contract test | P4 + ML service unchanged |
 | P6 | Admin pages | P5 (simulation page after P4) |
@@ -81,20 +81,24 @@ seeded PRNG `(run seed, meal index)`, so results do not depend on how time was a
 | Table | Columns (PK **bold**) | Constraints / indexes |
 |---|---|---|
 | `schema_migrations` | **version**, applied_at | Created by the migration runner (P1) |
-| `users` | **id**, email, password_hash, role (`admin`\|`student`), student_id | email unique; student_id → students; CHECK student ⇒ student_id not null |
+| `users` | **id**, email, password_hash, role (`admin`\|`student`), student_id, created_at | email unique, lower-case; student_id unique → students; CHECK role = student ⇔ student_id not null. Accounts are created in P3 |
 | `students` | **id** integer, code (`S0001`…`S1000`) | code unique |
-| `dishes` | **id** text (`D001`…, immutable), display_name, ml_dish_name, category, is_veg, portion_kg, active | ml_dish_name unique and immutable (trigger + API) |
-| `simulation_runs` | **id**, status (`running`\|`paused`\|`completed`), seed, start_date, total_days, learning_days, activation_day, total_students, speed, sim_now, calendar config | at most one row |
+| `dishes` | **id** text (`D001`…, immutable), display_name, ml_dish_name, category, is_veg, portion_kg, active, created_at, updated_at | ml_dish_name unique; id and ml_dish_name immutable (trigger); category one of the 10 recommended values; unique (id, ml_dish_name) |
+| `simulation_runs` | **id**, status (`running`\|`paused`\|`completed`), seed, start_date (Day 1), total_days, learning_days, activation_day, total_students, speed_sim_minutes, sim_now, calendar_config, created_at | at most one row; CHECK learning_days = 30, activation_day = 31, total_students = 1000, sim_now ≥ Day 0 19:30 UTC. The current day is derived from sim_now |
 | `sim_days` | **(run_id, day_number)**, date, is_weekend, is_holiday, is_exam_day, is_festival, temperature, rainfall | FK run ON DELETE CASCADE |
 | `meals` | **id** text (`r{run}-d031-lunch`), run_id, day_number, date, meal_type, serve_at, voting_opens_at, provisional_at, voting_closes_at, completes_at, phase, status, prov_total_responses, prov_not_eating, final_total_responses, final_not_eating, headcount | unique (run_id, date, meal_type); index (run_id, meal_type, serve_at); FK run CASCADE |
-| `meal_dishes` | **(meal_id, dish_id)**, ml_dish_name, display_name, category, is_veg, is_special, position | unique (meal_id, ml_dish_name); FK meal CASCADE, FK dish |
+| `meal_dishes` | **(meal_id, dish_id)**, ml_dish_name, display_name, category, is_veg, is_special, position | unique (meal_id, ml_dish_name), unique (meal_id, position); FK meal CASCADE; FK (dish_id, ml_dish_name) → dishes (copied ML name must be the real one) |
 | `meal_responses` | **id**, meal_id, student_id, response (`eating`\|`not_eating`), responded_at | unique (meal_id, student_id); **unique (id, meal_id, response)**; index (meal_id, responded_at) |
 | `response_picks` | **(response_id, dish_id)**, meal_id, response | see §4.2 |
 | `meal_dish_counts` | **(meal_id, dish_id)**, prov_taps, final_taps | FK (meal_id, dish_id) → meal_dishes CASCADE |
 | `prediction_requests` | **id**, meal_id, kind, attempt, status, is_current, request_payload, response_payload, http_status, error_detail, model_version, trained_on, sim_at, wall_at | unique (meal_id, kind, attempt); partial unique (meal_id, kind) WHERE is_current |
-| `prediction_items` | **(request_id, dish_id)**, interested_taps, predicted_consumers, warnings, hist_demand, hist_rating, prev_leftover_kg | FK request CASCADE |
+| `prediction_items` | **(request_id, dish_id)**, meal_id, interested_taps, predicted_consumers, warnings, hist_demand, hist_rating, prev_leftover_kg | FK (request_id, meal_id) → prediction_requests CASCADE; FK (meal_id, dish_id) → meal_dishes CASCADE (same pattern as response_picks) |
 | `dish_outcomes` | **(meal_id, dish_id)**, actual_consumers, prepared_servings, static_plan_servings, leftover_kg, static_plan_leftover_kg, shortfall_servings, avg_rating, source, edited_at | FK (meal_id, dish_id) → meal_dishes CASCADE; index (dish_id) |
 | `audit_log` | **id**, at, user_id, action, entity, before, after | no FK to runs; user_id ON DELETE SET NULL; append-only trigger |
+
+`meals` also enforces the approved schedule with CHECK constraints: id format `r{run}-d{day:03}-{meal_type}`, serve times
+07:30/12:30/19:30 UTC on its own date, offsets −12 h/−4 h/−30 m/+45 m, `phase` from the day number, frozen counts
+present exactly when the status has passed that step, and a composite FK `(run_id, day_number, date)` → `sim_days`.
 
 Every history query joins `meals` and filters on `run_id`. Predictions (`prediction_*`) and actual outcomes
 (`dish_outcomes`) are separate tables.

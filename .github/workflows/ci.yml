@@ -46,6 +46,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run migrate
+      - run: npm run seed
       - run: npm test
 
   frontend:

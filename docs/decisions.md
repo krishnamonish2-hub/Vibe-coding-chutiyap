@@ -62,4 +62,5 @@
 | Date | Change |
 |---|---|
 | 2026-11-14 | Phase 0 approved (D1–D12, Q1–Q4). |
+| 2026-11-14 | **Phase 2 refinements** (no change to any decision): admin and demo-student accounts are created in Phase 3 together with password hashing (bcrypt), instead of in the Phase 2 seed; `prediction_items` carries `meal_id` with composite FKs (same pattern as `response_picks`); `meal_dishes` has an FK on `(dish_id, ml_dish_name)` so a menu copy always uses the dish's real ML name; dishes with meat or eggs are marked `is_veg = false` (the model does not use `is_veg`). |
 | 2026-11-14 | **Database correction:** `response_picks` now carries `meal_id` and uses composite foreign keys so a pick's dish must belong to the same meal as its response, and picks are only possible for `eating` responses (see `docs/architecture.md` §4.2). No trigger needed. |

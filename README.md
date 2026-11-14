@@ -32,8 +32,9 @@ frontend (React + Vite) ──► backend (Node.js + Express) ──► PostgreS
 
 ## Status
 
-Phase 1 (foundation) is in place: backend and frontend skeletons, configuration, database pool and migration runner,
-`GET /api/health`, and CI. Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
+Phase 1 (foundation) and Phase 2 (database) are in place: backend and frontend skeletons, configuration, migration
+runner, `GET /api/health`, CI, the PostgreSQL schema (`backend/db/migrations/001_schema.sql`) and the synthetic seed
+(38 dishes, 1,000 students). Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
 
 ## Prerequisites
 
@@ -47,7 +48,7 @@ Phase 1 (foundation) is in place: backend and frontend skeletons, configuration,
 2. Backend:
 
    ```bash
-   cd backend && npm ci && npm run migrate && npm start
+   cd backend && npm ci && npm run migrate && npm run seed && npm start
    ```
 
 3. Frontend (in a second terminal; proxies `/api` to the backend):
