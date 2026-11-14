@@ -1,0 +1,54 @@
+{
+  "status": "FROZEN",
+  "frozen_on": "2026-11-14",
+  "approved_by": "Developer 1 (project owner)",
+  "selected_model": "random_forest",
+  "model_version": "rf-v1-synthetic",
+  "model_file": "random_forest.joblib",
+  "rationale": "Best validation MAE/RMSE/R2 of the three approaches (RF 31.08 MAE vs XGBoost 32.33 vs baseline 61.66); fewer large misses and less overfitting than XGBoost. RF-vs-XGBoost gap not statistically meaningful; both clearly beat the historical-demand baseline.",
+  "decided_before_test_set_was_used": true,
+  "validation_metrics": {
+    "baseline": {
+      "n": 182,
+      "mae": 61.65714285714287,
+      "rmse": 83.77861459666342,
+      "r2": 0.807973837912249,
+      "bias": -17.241758241758248
+    },
+    "random_forest": {
+      "n": 182,
+      "mae": 31.084319624773407,
+      "rmse": 41.788438795246094,
+      "r2": 0.9522243784433398,
+      "bias": -10.651573694711626
+    },
+    "xgboost": {
+      "n": 182,
+      "mae": 32.33289467109429,
+      "rmse": 45.31937474005819,
+      "r2": 0.9438096325634803,
+      "bias": -12.78815657227904
+    }
+  },
+  "frozen_artifact_md5": {
+    "random_forest.joblib": "17c3d7049cd489b9ceab7a3c05b64d96",
+    "preprocessor.joblib": "df5f28af320f3afcf7fb3c47b25e5be6",
+    "feature_schema.json": "58bced1bbc4440a326642c50fdb9fbad"
+  },
+  "processed_split_md5": {
+    "test.csv": "5ae0d87a9efe50c3c8f5bdaf6de72e24",
+    "train.csv": "6a2c604de1a3bac6cb8a0ce88837ba83",
+    "val.csv": "fc3406f7c9d8ac3e3b0ef468ac35249c"
+  },
+  "not_selected": {
+    "xgboost": {
+      "model_file": "xgboost_model.json",
+      "md5": "a4c6d297efa30f782183f05f32d66e0b",
+      "note": "kept unchanged for reference; not evaluated on the test set"
+    }
+  },
+  "rules": [
+    "Do not retrain or modify the selected model or the preprocessor.",
+    "Test results must not be used to change the model, features or hyperparameters."
+  ]
+}

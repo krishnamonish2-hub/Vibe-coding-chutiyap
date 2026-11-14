@@ -1,0 +1,278 @@
+{
+  "model_version": "xgb-v1-synthetic",
+  "model_type": "xgboost",
+  "trained_on": "synthetic",
+  "target": "actual_dish_consumers",
+  "feature_names": [
+    "historical_dish_demand",
+    "historical_dish_rating",
+    "previous_leftover_kg",
+    "day_of_week",
+    "temperature",
+    "rainfall",
+    "previous_meal_attendance",
+    "interested_taps",
+    "total_responses",
+    "tap_share",
+    "response_rate",
+    "projected_interest",
+    "num_dishes_in_meal",
+    "is_weekend",
+    "is_holiday",
+    "is_exam_day",
+    "is_festival",
+    "is_new_dish",
+    "meal_type_breakfast",
+    "meal_type_dinner",
+    "meal_type_lunch",
+    "dish_category_beverage",
+    "dish_category_bread",
+    "dish_category_breakfast_item",
+    "dish_category_dal",
+    "dish_category_dessert",
+    "dish_category_fruit",
+    "dish_category_main_nonveg",
+    "dish_category_main_veg",
+    "dish_category_side",
+    "dish_category_staple_rice",
+    "dish_name_Aloo Gobi",
+    "dish_name_Aloo Matar",
+    "dish_name_Aloo Paratha",
+    "dish_name_Banana",
+    "dish_name_Bhindi Fry",
+    "dish_name_Boiled Eggs",
+    "dish_name_Bread Omelette",
+    "dish_name_Buttermilk",
+    "dish_name_Chapati",
+    "dish_name_Chicken Biryani",
+    "dish_name_Chicken Curry",
+    "dish_name_Chole",
+    "dish_name_Coffee",
+    "dish_name_Cornflakes and Milk",
+    "dish_name_Curd",
+    "dish_name_Dal Fry",
+    "dish_name_Dal Tadka",
+    "dish_name_Egg Curry",
+    "dish_name_Gulab Jamun",
+    "dish_name_Ice Cream",
+    "dish_name_Idli Sambar",
+    "dish_name_Kadai Paneer",
+    "dish_name_Kadhi",
+    "dish_name_Kheer",
+    "dish_name_Lauki Sabzi",
+    "dish_name_Masala Dosa",
+    "dish_name_Mixed Veg",
+    "dish_name_Palak Paneer",
+    "dish_name_Paneer Butter Masala",
+    "dish_name_Poha",
+    "dish_name_Rajma",
+    "dish_name_Rice",
+    "dish_name_Salad",
+    "dish_name_Soya Chunks",
+    "dish_name_Tea",
+    "dish_name_Upma",
+    "dish_name_Veg Biryani",
+    "dish_name_Vegetable Soup"
+  ],
+  "n_features": 69,
+  "hyperparameters": {
+    "max_depth": 8,
+    "learning_rate": 0.02,
+    "subsample": 1.0,
+    "colsample_bytree": 0.75,
+    "min_child_weight": 3,
+    "reg_lambda": 0.5,
+    "n_estimators": 428,
+    "objective": "reg:squarederror",
+    "tree_method": "hist",
+    "random_state": 42,
+    "eval_metric": "mae"
+  },
+  "random_state": 42,
+  "tuning": {
+    "method": "random search",
+    "n_candidates": 40,
+    "space": {
+      "max_depth": [
+        3,
+        4,
+        5,
+        6,
+        8
+      ],
+      "learning_rate": [
+        0.02,
+        0.05,
+        0.1
+      ],
+      "subsample": [
+        0.7,
+        0.85,
+        1.0
+      ],
+      "colsample_bytree": [
+        0.5,
+        0.75,
+        1.0
+      ],
+      "min_child_weight": [
+        1,
+        3,
+        5,
+        10
+      ],
+      "reg_lambda": [
+        0.5,
+        1.0,
+        5.0,
+        10.0
+      ]
+    },
+    "early_stopping": {
+      "rounds": 100,
+      "max_trees": 3000,
+      "eval_set": "validation",
+      "metric": "mae"
+    },
+    "selection_metric": "validation MAE",
+    "fit_on": "train",
+    "final_model": "refit on train with n_estimators fixed to the best early-stopping iteration",
+    "results_file": "xgboost_tuning.csv"
+  },
+  "split": {
+    "train": {
+      "rows": 940,
+      "days": 63,
+      "start": "2026-07-01",
+      "end": "2026-09-01",
+      "exam_days": 0,
+      "new_dish_rows": 1
+    },
+    "val": {
+      "rows": 182,
+      "days": 13,
+      "start": "2026-09-02",
+      "end": "2026-09-14",
+      "exam_days": 6,
+      "new_dish_rows": 0
+    }
+  },
+  "test_set_used": false,
+  "metrics": {
+    "validation": {
+      "baseline": {
+        "n": 182,
+        "mae": 61.65714285714287,
+        "rmse": 83.77861459666342,
+        "r2": 0.807973837912249,
+        "bias": -17.241758241758248
+      },
+      "random_forest": {
+        "n": 182,
+        "mae": 31.084319624773407,
+        "rmse": 41.7884387952461,
+        "r2": 0.9522243784433398,
+        "bias": -10.651573694711626
+      },
+      "xgboost": {
+        "n": 182,
+        "mae": 32.33289467109429,
+        "rmse": 45.31937474005819,
+        "r2": 0.9438096325634803,
+        "bias": -12.78815657227904
+      }
+    },
+    "train": {
+      "xgboost": {
+        "n": 940,
+        "mae": 3.1483165253984167,
+        "rmse": 4.213963275538379,
+        "r2": 0.9994667482502726,
+        "bias": -0.00403082827304272
+      }
+    }
+  },
+  "comparison_file": "model_comparison_validation.csv",
+  "bootstrap_mae_differences_validation": {
+    "xgboost_minus_random_forest": {
+      "mae_diff": 1.2485750463208818,
+      "ci95_low": -0.688962761349765,
+      "ci95_high": 3.2813321966972016,
+      "share_boot_a_better": 0.099,
+      "n_days": 13,
+      "meaningful": false
+    },
+    "xgboost_minus_baseline": {
+      "mae_diff": -29.32424818604857,
+      "ci95_low": -40.715383449986334,
+      "ci95_high": -18.690712422608495,
+      "share_boot_a_better": 1.0,
+      "n_days": 13,
+      "meaningful": true
+    },
+    "random_forest_minus_baseline": {
+      "mae_diff": -30.572823232369455,
+      "ci95_low": -41.36629336059749,
+      "ci95_high": -20.906864481545426,
+      "share_boot_a_better": 1.0,
+      "n_days": 13,
+      "meaningful": true
+    }
+  },
+  "validation_optional_inputs_missing": {
+    "features_set_to_train_median": [
+      "previous_meal_attendance",
+      "previous_leftover_kg",
+      "historical_dish_rating"
+    ],
+    "xgboost": {
+      "n": 182,
+      "mae": 39.883389944558616,
+      "rmse": 55.184868129322886,
+      "r2": 0.9166829141413699,
+      "bias": 7.741650130722549
+    },
+    "random_forest": {
+      "n": 182,
+      "mae": 37.988981733168295,
+      "rmse": 52.984545813769564,
+      "r2": 0.9231944709430375,
+      "bias": 4.409162556393741
+    }
+  },
+  "prediction_validity_validation": {
+    "n_nan": 0,
+    "n_inf": 0,
+    "n_negative": 0,
+    "n_above_total_students": 0,
+    "min": 114.9484634399414,
+    "max": 763.85986328125
+  },
+  "inference_postprocessing": "round to nearest integer and clip to [0, total_students] (API only; metrics above use raw predictions)",
+  "top_permutation_importance": {
+    "tap_share": 88.731,
+    "historical_dish_demand": 36.611,
+    "projected_interest": 17.054,
+    "historical_dish_rating": 10.499,
+    "interested_taps": 2.148,
+    "dish_name_Tea": 1.581,
+    "dish_category_dal": 1.314,
+    "temperature": 1.026,
+    "dish_category_staple_rice": 0.554,
+    "dish_category_main_veg": 0.545
+  },
+  "artifacts": {
+    "model": "xgboost_model.json",
+    "preprocessor": "preprocessor.joblib",
+    "preprocessor_md5": "df5f28af320f3afcf7fb3c47b25e5be6",
+    "feature_schema": "feature_schema.json",
+    "feature_schema_md5": "58bced1bbc4440a326642c50fdb9fbad",
+    "raw_data_md5": "0a8d9df2a9491ef15e86d93a71c3bf3c"
+  },
+  "versions": {
+    "xgboost": "3.4.1",
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.4"
+  }
+}

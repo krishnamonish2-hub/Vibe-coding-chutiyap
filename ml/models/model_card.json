@@ -1,0 +1,500 @@
+{
+  "package_version": "1.0.0",
+  "model_name": "MessMind dish-demand model",
+  "model_version": "rf-v1-synthetic",
+  "model_type": "RandomForestRegressor (scikit-learn)",
+  "task": "Predict how many students will actually eat each dish at one meal (dish-wise, not total attendance).",
+  "target": {
+    "name": "actual_dish_consumers",
+    "type": "int",
+    "range": "[0, total_students]",
+    "note": "interested_taps is an INPUT; actual consumers are the target"
+  },
+  "status": {
+    "selection": "FROZEN",
+    "frozen_on": "2026-11-14",
+    "selected_on": "validation results only (Phases 5-6)"
+  },
+  "trained_on": "synthetic",
+  "synthetic_data_limitation": "Trained and evaluated ONLY on synthetic data from src/generate_data.py. Metrics show how well the simulator's rules are learned, not accuracy in a real mess. Retrain and re-test on real exported records (shared/api_contract.md section 3) before using predictions for real cooking decisions.",
+  "hyperparameters": {
+    "n_estimators": 500,
+    "max_depth": 12,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "max_features": 1.0
+  },
+  "random_state": 42,
+  "features": {
+    "n_features": 69,
+    "ordered_names": [
+      "historical_dish_demand",
+      "historical_dish_rating",
+      "previous_leftover_kg",
+      "day_of_week",
+      "temperature",
+      "rainfall",
+      "previous_meal_attendance",
+      "interested_taps",
+      "total_responses",
+      "tap_share",
+      "response_rate",
+      "projected_interest",
+      "num_dishes_in_meal",
+      "is_weekend",
+      "is_holiday",
+      "is_exam_day",
+      "is_festival",
+      "is_new_dish",
+      "meal_type_breakfast",
+      "meal_type_dinner",
+      "meal_type_lunch",
+      "dish_category_beverage",
+      "dish_category_bread",
+      "dish_category_breakfast_item",
+      "dish_category_dal",
+      "dish_category_dessert",
+      "dish_category_fruit",
+      "dish_category_main_nonveg",
+      "dish_category_main_veg",
+      "dish_category_side",
+      "dish_category_staple_rice",
+      "dish_name_Aloo Gobi",
+      "dish_name_Aloo Matar",
+      "dish_name_Aloo Paratha",
+      "dish_name_Banana",
+      "dish_name_Bhindi Fry",
+      "dish_name_Boiled Eggs",
+      "dish_name_Bread Omelette",
+      "dish_name_Buttermilk",
+      "dish_name_Chapati",
+      "dish_name_Chicken Biryani",
+      "dish_name_Chicken Curry",
+      "dish_name_Chole",
+      "dish_name_Coffee",
+      "dish_name_Cornflakes and Milk",
+      "dish_name_Curd",
+      "dish_name_Dal Fry",
+      "dish_name_Dal Tadka",
+      "dish_name_Egg Curry",
+      "dish_name_Gulab Jamun",
+      "dish_name_Ice Cream",
+      "dish_name_Idli Sambar",
+      "dish_name_Kadai Paneer",
+      "dish_name_Kadhi",
+      "dish_name_Kheer",
+      "dish_name_Lauki Sabzi",
+      "dish_name_Masala Dosa",
+      "dish_name_Mixed Veg",
+      "dish_name_Palak Paneer",
+      "dish_name_Paneer Butter Masala",
+      "dish_name_Poha",
+      "dish_name_Rajma",
+      "dish_name_Rice",
+      "dish_name_Salad",
+      "dish_name_Soya Chunks",
+      "dish_name_Tea",
+      "dish_name_Upma",
+      "dish_name_Veg Biryani",
+      "dish_name_Vegetable Soup"
+    ],
+    "groups": {
+      "history": [
+        "historical_dish_demand",
+        "historical_dish_rating",
+        "previous_leftover_kg"
+      ],
+      "numeric": [
+        "day_of_week",
+        "temperature",
+        "rainfall",
+        "previous_meal_attendance",
+        "interested_taps",
+        "total_responses",
+        "tap_share",
+        "response_rate",
+        "projected_interest",
+        "num_dishes_in_meal"
+      ],
+      "boolean": [
+        "is_weekend",
+        "is_holiday",
+        "is_exam_day",
+        "is_festival",
+        "is_new_dish"
+      ],
+      "categorical": [
+        "meal_type",
+        "dish_category",
+        "dish_name"
+      ]
+    },
+    "excluded": {
+      "actual_dish_consumers": "the TARGET (known only after the meal) - kept separately as y",
+      "data_source": "metadata, always 'synthetic'",
+      "date": "identifier / split key; raw dates do not generalise to future days (useful parts are already columns: day_of_week, calendar flags)",
+      "total_students": "constant (1000) in this data, so no information as a raw column; used only inside response_rate and projected_interest",
+      "month (not derived)": "train covers Jul-Aug (+1 Sep day) while test is entirely September: the model would have to extrapolate an unseen month value",
+      "dish_times_served_before (not derived)": "cannot be computed correctly - servings before the CSV window (generator warm-up) are not in the data"
+    }
+  },
+  "input_spec": {
+    "date": {
+      "type": "date YYYY-MM-DD",
+      "required": true
+    },
+    "meal_type": {
+      "type": "category",
+      "required": true,
+      "allowed": [
+        "breakfast",
+        "lunch",
+        "dinner"
+      ]
+    },
+    "dish_name": {
+      "type": "string",
+      "required": true,
+      "unseen": "allowed (falls back to dish_category)"
+    },
+    "dish_category": {
+      "type": "category",
+      "required": true,
+      "unseen": "allowed (encoded as all zeros)"
+    },
+    "total_students": {
+      "type": "int",
+      "required": true,
+      "rule": "> 0"
+    },
+    "total_responses": {
+      "type": "int",
+      "required": true,
+      "rule": "0 <= x <= total_students; same for every dish of a meal"
+    },
+    "interested_taps": {
+      "type": "int",
+      "required": true,
+      "rule": "0 <= x <= total_responses"
+    },
+    "is_holiday": {
+      "type": "bool",
+      "required": false,
+      "default": false
+    },
+    "is_exam_day": {
+      "type": "bool",
+      "required": false,
+      "default": false
+    },
+    "is_festival": {
+      "type": "bool",
+      "required": false,
+      "default": false
+    },
+    "day_of_week": {
+      "type": "int 0-6",
+      "required": false,
+      "default": "derived from date (must match if given)"
+    },
+    "is_weekend": {
+      "type": "bool",
+      "required": false,
+      "default": "derived from date (must match if given)"
+    },
+    "temperature": {
+      "type": "float degC",
+      "required": false,
+      "rule": "-30..60",
+      "if_missing": "train median"
+    },
+    "rainfall": {
+      "type": "float mm",
+      "required": false,
+      "rule": ">= 0",
+      "if_missing": "train median"
+    },
+    "previous_meal_attendance": {
+      "type": "float",
+      "required": false,
+      "rule": "0..total_students",
+      "if_missing": "train median"
+    },
+    "historical_dish_demand": {
+      "type": "float",
+      "required": false,
+      "rule": ">= 0; mean of last 5 PAST servings",
+      "if_missing": "treated as NEW dish: is_new_dish=1 + train median of (dish_category, meal_type)"
+    },
+    "historical_dish_rating": {
+      "type": "float",
+      "required": false,
+      "rule": "1..5; mean of last 5 PAST ratings",
+      "if_missing": "train median of (dish_category, meal_type)"
+    },
+    "previous_leftover_kg": {
+      "type": "float",
+      "required": false,
+      "rule": ">= 0; this dish, previous serving",
+      "if_missing": "train median of (dish_category, meal_type)"
+    }
+  },
+  "training_ranges": {
+    "total_students": {
+      "min": 1000.0,
+      "max": 1000.0
+    },
+    "total_responses": {
+      "min": 232.0,
+      "max": 575.0
+    },
+    "interested_taps": {
+      "min": 30.0,
+      "max": 422.0
+    },
+    "historical_dish_demand": {
+      "min": 117.6,
+      "max": 732.2
+    },
+    "actual_dish_consumers": {
+      "min": 91.0,
+      "max": 830.0
+    }
+  },
+  "preprocessing": {
+    "steps": [
+      "engineer: stateless pre-meal features (tap_share, response_rate, projected_interest, num_dishes_in_meal, is_new_dish)",
+      "history: GroupMedianImputer - train medians per (dish_category, meal_type) -> meal_type -> overall",
+      "numeric: SimpleImputer(median), fitted on train",
+      "boolean: SimpleImputer(most_frequent), fitted on train",
+      "categorical: SimpleImputer('unknown') + OneHotEncoder(handle_unknown='ignore'), fitted on train",
+      "no scaling (tree model)"
+    ],
+    "fitted_on": "train split only; never refitted at inference"
+  },
+  "postprocessing": "round to nearest integer, then clip to [0, total_students]",
+  "dataset": {
+    "id": "messmind-synthetic-v1",
+    "data_source": "synthetic",
+    "generator": "src/generate_data.py",
+    "generator_args": "--days 90 --students 1000 --seed 42 --start-date 2026-07-01 --burn-in-days 21",
+    "raw_data_md5": "0a8d9df2a9491ef15e86d93a71c3bf3c",
+    "rows": 1337
+  },
+  "splits": {
+    "train": {
+      "rows": 940,
+      "days": 63,
+      "start": "2026-07-01",
+      "end": "2026-09-01",
+      "exam_days": 0,
+      "new_dish_rows": 1
+    },
+    "val": {
+      "rows": 182,
+      "days": 13,
+      "start": "2026-09-02",
+      "end": "2026-09-14",
+      "exam_days": 6,
+      "new_dish_rows": 0
+    },
+    "test": {
+      "rows": 215,
+      "days": 14,
+      "start": "2026-09-15",
+      "end": "2026-09-28",
+      "exam_days": 2,
+      "new_dish_rows": 0
+    }
+  },
+  "metrics": {
+    "train": {
+      "n": 940,
+      "mae": 11.830210586669365,
+      "rmse": 15.345344888812377,
+      "r2": 0.992928621175321,
+      "bias": 0.050214407077808956
+    },
+    "validation": {
+      "random_forest": {
+        "n": 182,
+        "mae": 31.084319624773407,
+        "rmse": 41.788438795246094,
+        "r2": 0.9522243784433398,
+        "bias": -10.651573694711626
+      },
+      "baseline": {
+        "n": 182,
+        "mae": 61.65714285714287,
+        "rmse": 83.77861459666342,
+        "r2": 0.807973837912249,
+        "bias": -17.241758241758248
+      }
+    },
+    "test": {
+      "random_forest_raw": {
+        "n": 215,
+        "mae": 31.440570707472283,
+        "rmse": 41.72140421441023,
+        "r2": 0.9533120753508998,
+        "bias": -3.084393695064948
+      },
+      "random_forest_rounded_clipped": {
+        "n": 215,
+        "mae": 31.446511627906975,
+        "rmse": 41.73142254832654,
+        "r2": 0.9532896508239617,
+        "bias": -3.074418604651163
+      },
+      "baseline": {
+        "n": 215,
+        "mae": 56.22046511627908,
+        "rmse": 74.48487906482984,
+        "r2": 0.8511931343314347,
+        "bias": 10.741395348837205
+      }
+    },
+    "test_by_meal_type": [
+      {
+        "group": "breakfast",
+        "model": "Baseline (historical demand)",
+        "n": 70,
+        "mae": 57.51714285714286,
+        "rmse": 74.3433924434445,
+        "r2": 0.6476884270682421,
+        "bias": 23.511428571428574,
+        "small_sample": false
+      },
+      {
+        "group": "breakfast",
+        "model": "Random Forest",
+        "n": 70,
+        "mae": 27.299144860887484,
+        "rmse": 34.982856618922796,
+        "r2": 0.9219895650078512,
+        "bias": 8.68972973107191,
+        "small_sample": false
+      },
+      {
+        "group": "lunch",
+        "model": "Baseline (historical demand)",
+        "n": 72,
+        "mae": 59.3111111111111,
+        "rmse": 78.46524354416066,
+        "r2": 0.8335790212938279,
+        "bias": 5.2222222222222205,
+        "small_sample": false
+      },
+      {
+        "group": "lunch",
+        "model": "Random Forest",
+        "n": 72,
+        "mae": 35.1779137815166,
+        "rmse": 44.87795964331052,
+        "r2": 0.9455598109131055,
+        "bias": -9.428184697446902,
+        "small_sample": false
+      },
+      {
+        "group": "dinner",
+        "model": "Baseline (historical demand)",
+        "n": 73,
+        "mae": 51.92876712328767,
+        "rmse": 70.48213608319,
+        "r2": 0.7406324529598844,
+        "bias": 3.939726027397256,
+        "small_sample": false
+      },
+      {
+        "group": "dinner",
+        "model": "Random Forest",
+        "n": 73,
+        "mae": 31.725654377742757,
+        "rmse": 44.347472726498744,
+        "r2": 0.8973177751673413,
+        "bias": -8.1177592794222,
+        "small_sample": false
+      },
+      {
+        "group": "all",
+        "model": "Baseline (historical demand)",
+        "n": 215,
+        "mae": 56.22046511627908,
+        "rmse": 74.48487906482984,
+        "r2": 0.8511931343314347,
+        "bias": 10.741395348837205,
+        "small_sample": false
+      },
+      {
+        "group": "all",
+        "model": "Random Forest",
+        "n": 215,
+        "mae": 31.440570707472283,
+        "rmse": 41.72140421441023,
+        "r2": 0.9533120753508998,
+        "bias": -3.084393695064948,
+        "small_sample": false
+      }
+    ],
+    "test_optional_inputs_missing": {
+      "features_set_to_train_median": [
+        "previous_meal_attendance",
+        "previous_leftover_kg",
+        "historical_dish_rating"
+      ],
+      "n": 215,
+      "mae": 41.95715077721311,
+      "rmse": 59.4055445301732,
+      "r2": 0.9053456238467028,
+      "bias": 14.789720284821225
+    },
+    "metric_definitions": {
+      "mae": "mean absolute error (consumers)",
+      "rmse": "root mean squared error",
+      "r2": "share of variance explained",
+      "bias": "mean(predicted - actual)"
+    }
+  },
+  "known_limitations": [
+    "Exam days not in training: exam-day demand under-predicted (~ -17 to -22 consumers).",
+    "Tree model ceiling: demand above the training maximum (830) is under-predicted.",
+    "Missing optional inputs (attendance, leftovers, rating) raise MAE to ~42.",
+    "Missing historical_dish_demand marks a dish as NEW; known dishes must be sent with their history.",
+    "total_students was constant (1000) in training: the model does not know how demand scales with mess size. Other sizes are only kept valid by clipping (warning: total_students_outside_training_range).",
+    "Small evaluation sets (val 182 rows / 13 days, test 215 rows / 14 days)."
+  ],
+  "baseline_definition": "historical_dish_demand (mean consumers over the dish's last 5 past servings at that meal type)",
+  "artifacts": {
+    "model": {
+      "path": "models/random_forest.joblib",
+      "md5": "17c3d7049cd489b9ceab7a3c05b64d96"
+    },
+    "preprocessor": {
+      "path": "models/preprocessor.joblib",
+      "md5": "df5f28af320f3afcf7fb3c47b25e5be6",
+      "requires_import": "src.preprocessing (run with ml/ on the Python path)"
+    },
+    "feature_schema": {
+      "path": "models/feature_schema.json",
+      "md5": "58bced1bbc4440a326642c50fdb9fbad"
+    },
+    "selection_record": "models/model_selection.json",
+    "training_metadata": "models/random_forest_metadata.json",
+    "final_evaluation": "models/final_evaluation.json",
+    "reports": [
+      "docs/random_forest_report.md",
+      "docs/final_evaluation_report.md",
+      "docs/preprocessing_report.md"
+    ]
+  },
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.4",
+    "trained_with": {
+      "scikit-learn": "1.9.1",
+      "pandas": "3.1.1",
+      "numpy": "2.5.4"
+    }
+  }
+}

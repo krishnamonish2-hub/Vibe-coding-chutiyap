@@ -1,0 +1,20 @@
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+xgboost
+joblib
+scipy
+fastapi
+uvicorn
+pydantic
+
+# API tests (FastAPI TestClient needs httpx)
+pytest
+httpx
+
+# notebooks (EDA): run and execute .ipynb files
+ipykernel
+nbformat
+nbclient

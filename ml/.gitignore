@@ -1,0 +1,38 @@
+# ---------- Python environment ----------
+venv/
+.venv/
+env/
+
+# ---------- Python cache / build ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---------- Jupyter ----------
+.ipynb_checkpoints/
+
+# ---------- Project outputs ----------
+# The synthetic dataset (data/), the frozen model artifacts (models/) and the generated
+# figures (reports/figures/) ARE committed for the project submission. All files are
+# well below GitHub's 100 MB limit (largest: models/random_forest.joblib, about 33 MB).
+
+# ---------- Secrets / local settings ----------
+.env
+.env.*
+!.env.example
+
+# ---------- OS / editor clutter ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.log
+.vscode/
+.idea/

@@ -1,0 +1,9 @@
+# Frozen ML artifacts and datasets are verified by MD5 checksum (models/model_card.json,
+# models/model_selection.json). Git must store and check them out byte-for-byte:
+# no line-ending conversion, otherwise the checksums break on other machines.
+ml/models/** -text
+ml/data/** -text
+
+# Binary files
+*.joblib binary
+*.png binary

@@ -1,0 +1,689 @@
+{
+  "evaluated_model": "random_forest",
+  "model_version": "rf-v1-synthetic",
+  "data": "synthetic",
+  "test_split": {
+    "rows": 215,
+    "days": 14,
+    "start": "2026-09-15",
+    "end": "2026-09-28",
+    "exam_days": 2,
+    "new_dish_rows": 0
+  },
+  "test_set_history": "First opened on 2026-11-14 by an earlier evaluation script, AFTER the model selection was frozen (models/model_selection.json). No model, preprocessing or feature change was made after that; this script re-scores the same frozen model.",
+  "metrics": {
+    "train_phase5": {
+      "n": 940,
+      "mae": 11.830210586669365,
+      "rmse": 15.345344888812377,
+      "r2": 0.992928621175321,
+      "bias": 0.050214407077808956
+    },
+    "validation": {
+      "baseline": {
+        "n": 182,
+        "mae": 61.65714285714287,
+        "rmse": 83.77861459666342,
+        "r2": 0.807973837912249,
+        "bias": -17.241758241758248
+      },
+      "random_forest": {
+        "n": 182,
+        "mae": 31.084319624773414,
+        "rmse": 41.788438795246094,
+        "r2": 0.9522243784433398,
+        "bias": -10.651573694711628
+      }
+    },
+    "test": {
+      "baseline": {
+        "n": 215,
+        "mae": 56.22046511627908,
+        "rmse": 74.48487906482984,
+        "r2": 0.8511931343314347,
+        "bias": 10.741395348837205
+      },
+      "random_forest_raw": {
+        "n": 215,
+        "mae": 31.440570707472283,
+        "rmse": 41.72140421441023,
+        "r2": 0.9533120753508998,
+        "bias": -3.084393695064948
+      },
+      "random_forest_api_rounded_clipped": {
+        "n": 215,
+        "mae": 31.446511627906975,
+        "rmse": 41.73142254832654,
+        "r2": 0.9532896508239617,
+        "bias": -3.074418604651163
+      }
+    }
+  },
+  "validation_recomputed_matches_phase5": true,
+  "n_test_predictions_changed_by_clipping": 0,
+  "by_meal_type": {
+    "validation": [
+      {
+        "group": "breakfast",
+        "model": "Baseline (historical demand)",
+        "n": 58,
+        "mae": 61.57241379310344,
+        "rmse": 83.40277015162937,
+        "r2": 0.6847621808028002,
+        "bias": -20.841379310344827,
+        "small_sample": false
+      },
+      {
+        "group": "breakfast",
+        "model": "Random Forest",
+        "n": 58,
+        "mae": 27.984102999069513,
+        "rmse": 39.566694247696255,
+        "r2": 0.9290525325951329,
+        "bias": -17.858258756658337,
+        "small_sample": false
+      },
+      {
+        "group": "lunch",
+        "model": "Baseline (historical demand)",
+        "n": 62,
+        "mae": 66.38387096774196,
+        "rmse": 88.54535196631561,
+        "r2": 0.7962306716510246,
+        "bias": -18.016129032258064,
+        "small_sample": false
+      },
+      {
+        "group": "lunch",
+        "model": "Random Forest",
+        "n": 62,
+        "mae": 34.63483646523426,
+        "rmse": 44.89301816132775,
+        "r2": 0.9476200734799944,
+        "bias": -9.383097713803078,
+        "small_sample": false
+      },
+      {
+        "group": "dinner",
+        "model": "Baseline (historical demand)",
+        "n": 62,
+        "mae": 57.00967741935485,
+        "rmse": 79.09622967238765,
+        "r2": 0.7201330841110533,
+        "bias": -13.100000000000005,
+        "small_sample": false
+      },
+      {
+        "group": "dinner",
+        "model": "Random Forest",
+        "n": 62,
+        "mae": 30.434005434164586,
+        "rmse": 40.574045476516986,
+        "r2": 0.9263561269336623,
+        "bias": -5.178312037024865,
+        "small_sample": false
+      },
+      {
+        "group": "all",
+        "model": "Baseline (historical demand)",
+        "n": 182,
+        "mae": 61.65714285714287,
+        "rmse": 83.77861459666342,
+        "r2": 0.807973837912249,
+        "bias": -17.241758241758248,
+        "small_sample": false
+      },
+      {
+        "group": "all",
+        "model": "Random Forest",
+        "n": 182,
+        "mae": 31.084319624773414,
+        "rmse": 41.788438795246094,
+        "r2": 0.9522243784433398,
+        "bias": -10.651573694711628,
+        "small_sample": false
+      }
+    ],
+    "test": [
+      {
+        "group": "breakfast",
+        "model": "Baseline (historical demand)",
+        "n": 70,
+        "mae": 57.51714285714286,
+        "rmse": 74.3433924434445,
+        "r2": 0.6476884270682421,
+        "bias": 23.511428571428574,
+        "small_sample": false
+      },
+      {
+        "group": "breakfast",
+        "model": "Random Forest",
+        "n": 70,
+        "mae": 27.299144860887484,
+        "rmse": 34.982856618922796,
+        "r2": 0.9219895650078512,
+        "bias": 8.68972973107191,
+        "small_sample": false
+      },
+      {
+        "group": "lunch",
+        "model": "Baseline (historical demand)",
+        "n": 72,
+        "mae": 59.3111111111111,
+        "rmse": 78.46524354416066,
+        "r2": 0.8335790212938279,
+        "bias": 5.2222222222222205,
+        "small_sample": false
+      },
+      {
+        "group": "lunch",
+        "model": "Random Forest",
+        "n": 72,
+        "mae": 35.1779137815166,
+        "rmse": 44.87795964331052,
+        "r2": 0.9455598109131055,
+        "bias": -9.428184697446902,
+        "small_sample": false
+      },
+      {
+        "group": "dinner",
+        "model": "Baseline (historical demand)",
+        "n": 73,
+        "mae": 51.92876712328767,
+        "rmse": 70.48213608319,
+        "r2": 0.7406324529598844,
+        "bias": 3.939726027397256,
+        "small_sample": false
+      },
+      {
+        "group": "dinner",
+        "model": "Random Forest",
+        "n": 73,
+        "mae": 31.725654377742757,
+        "rmse": 44.347472726498744,
+        "r2": 0.8973177751673413,
+        "bias": -8.1177592794222,
+        "small_sample": false
+      },
+      {
+        "group": "all",
+        "model": "Baseline (historical demand)",
+        "n": 215,
+        "mae": 56.22046511627908,
+        "rmse": 74.48487906482984,
+        "r2": 0.8511931343314347,
+        "bias": 10.741395348837205,
+        "small_sample": false
+      },
+      {
+        "group": "all",
+        "model": "Random Forest",
+        "n": 215,
+        "mae": 31.440570707472283,
+        "rmse": 41.72140421441023,
+        "r2": 0.9533120753508998,
+        "bias": -3.084393695064948,
+        "small_sample": false
+      }
+    ]
+  },
+  "by_exam_day": {
+    "validation": [
+      {
+        "group": "non-exam day",
+        "model": "Baseline (historical demand)",
+        "n": 97,
+        "mae": 53.136082474226804,
+        "rmse": 75.68147303551076,
+        "r2": 0.8301369219208539,
+        "bias": -2.92577319587629,
+        "small_sample": false
+      },
+      {
+        "group": "non-exam day",
+        "model": "Random Forest",
+        "n": 97,
+        "mae": 27.0272846108807,
+        "rmse": 37.83749725307228,
+        "r2": 0.957541500527916,
+        "bias": -0.7751928046676625,
+        "small_sample": false
+      },
+      {
+        "group": "exam day",
+        "model": "Baseline (historical demand)",
+        "n": 85,
+        "mae": 71.38117647058826,
+        "rmse": 92.15373089380083,
+        "r2": 0.7698804526350151,
+        "bias": -33.57882352941177,
+        "small_sample": false
+      },
+      {
+        "group": "exam day",
+        "model": "Random Forest",
+        "n": 85,
+        "mae": 35.714112522980386,
+        "rmse": 45.88338248997533,
+        "r2": 0.9429522502189097,
+        "bias": -21.92226718099709,
+        "small_sample": false
+      }
+    ],
+    "test": [
+      {
+        "group": "exam day",
+        "model": "Baseline (historical demand)",
+        "n": 30,
+        "mae": 59.07333333333336,
+        "rmse": 68.80119185014168,
+        "r2": 0.8712272310420144,
+        "bias": -18.700000000000003,
+        "small_sample": false
+      },
+      {
+        "group": "exam day",
+        "model": "Random Forest",
+        "n": 30,
+        "mae": 28.461875181476337,
+        "rmse": 35.78696272189741,
+        "r2": 0.9651597074675887,
+        "bias": -17.133125854281314,
+        "small_sample": false
+      },
+      {
+        "group": "non-exam day",
+        "model": "Baseline (historical demand)",
+        "n": 185,
+        "mae": 55.75783783783784,
+        "rmse": 75.3661792382563,
+        "r2": 0.8477101212084005,
+        "bias": 15.515675675675674,
+        "small_sample": false
+      },
+      {
+        "group": "non-exam day",
+        "model": "Random Forest",
+        "n": 185,
+        "mae": 31.923602414390544,
+        "rmse": 42.60592817799206,
+        "r2": 0.9513303632141139,
+        "bias": -0.8062209124893213,
+        "small_sample": false
+      }
+    ]
+  },
+  "bootstrap_rf_minus_baseline_test": {
+    "mae_diff": -24.779894408806786,
+    "ci95_low": -34.575751083289624,
+    "ci95_high": -16.594429632850762,
+    "share_boot_a_better": 1.0,
+    "n_days": 14,
+    "meaningful": true
+  },
+  "distribution": {
+    "feature_means_and_ks": [
+      {
+        "feature": "actual_dish_consumers",
+        "train_mean": 413.5542553191489,
+        "val_mean": 448.8241758241758,
+        "test_mean": 426.3302325581395,
+        "ks_p_train_vs_test": 0.25857181297053794,
+        "ks_p_val_vs_test": 0.4721726637264352
+      },
+      {
+        "feature": "interested_taps",
+        "train_mean": 163.80531914893618,
+        "val_mean": 152.4835164835165,
+        "test_mean": 164.75348837209302,
+        "ks_p_train_vs_test": 0.7538216869124217,
+        "ks_p_val_vs_test": 0.1696759488494329
+      },
+      {
+        "feature": "total_responses",
+        "train_mean": 408.43297872340423,
+        "val_mean": 359.2197802197802,
+        "test_mean": 405.09302325581393,
+        "ks_p_train_vs_test": 0.016282577111074923,
+        "ks_p_val_vs_test": 2.2173235349954648e-16
+      },
+      {
+        "feature": "tap_share",
+        "train_mean": 0.39325346099094055,
+        "val_mean": 0.4223670819226776,
+        "test_mean": 0.40410979586665186,
+        "ks_p_train_vs_test": 0.22584943775909255,
+        "ks_p_val_vs_test": 0.33252548407345794
+      },
+      {
+        "feature": "projected_interest",
+        "train_mean": 393.25346099094054,
+        "val_mean": 422.3670819226776,
+        "test_mean": 404.1097958666519,
+        "ks_p_train_vs_test": 0.22584943775909255,
+        "ks_p_val_vs_test": 0.33252548407345794
+      },
+      {
+        "feature": "historical_dish_demand",
+        "train_mean": 414.38755319148936,
+        "val_mean": 431.5824175824176,
+        "test_mean": 437.0716279069768,
+        "ks_p_train_vs_test": 0.009570775670497526,
+        "ks_p_val_vs_test": 0.43633917179778414
+      },
+      {
+        "feature": "historical_dish_rating",
+        "train_mean": 3.738808510638298,
+        "val_mean": 3.7737362637362635,
+        "test_mean": 3.7763255813953487,
+        "ks_p_train_vs_test": 0.04356242587647617,
+        "ks_p_val_vs_test": 0.5955077256821375
+      },
+      {
+        "feature": "previous_meal_attendance",
+        "train_mean": 678.6117021276596,
+        "val_mean": 706.6538461538462,
+        "test_mean": 712.046511627907,
+        "ks_p_train_vs_test": 9.678560776070515e-05,
+        "ks_p_val_vs_test": 0.08969009433758753
+      },
+      {
+        "feature": "temperature",
+        "train_mean": 28.75,
+        "val_mean": 29.509340659340662,
+        "test_mean": 29.482790697674414,
+        "ks_p_train_vs_test": 2.923452579952589e-10,
+        "ks_p_val_vs_test": 0.00039852156815264834
+      },
+      {
+        "feature": "rainfall",
+        "train_mean": 5.730212765957447,
+        "val_mean": 7.666483516483516,
+        "test_mean": 8.387906976744187,
+        "ks_p_train_vs_test": 4.290431579144443e-13,
+        "ks_p_val_vs_test": 0.06008597331486151
+      }
+    ],
+    "composition": [
+      {
+        "split": "train",
+        "rows": 940.0,
+        "days": 63.0,
+        "exam_day_row_share": 0.0,
+        "exam_days": 0.0,
+        "breakfast_row_share": 0.3372340425531915,
+        "lunch_row_share": 0.32978723404255317,
+        "dinner_row_share": 0.33297872340425533
+      },
+      {
+        "split": "val",
+        "rows": 182.0,
+        "days": 13.0,
+        "exam_day_row_share": 0.46703296703296704,
+        "exam_days": 6.0,
+        "breakfast_row_share": 0.31868131868131866,
+        "lunch_row_share": 0.34065934065934067,
+        "dinner_row_share": 0.34065934065934067
+      },
+      {
+        "split": "test",
+        "rows": 215.0,
+        "days": 14.0,
+        "exam_day_row_share": 0.13953488372093023,
+        "exam_days": 2.0,
+        "breakfast_row_share": 0.32558139534883723,
+        "lunch_row_share": 0.33488372093023255,
+        "dinner_row_share": 0.3395348837209302
+      }
+    ],
+    "baseline_bias_by_test_week": {
+      "test_days_1_7": 13.288073394495406,
+      "test_days_8_14": 8.12264150943396
+    }
+  },
+  "prediction_validity_test": {
+    "n_nan": 0,
+    "n_inf": 0,
+    "n_negative": 0,
+    "n_above_total_students": 0,
+    "min": 114.579177064456,
+    "max": 797.7363058608059
+  },
+  "optional_inputs_missing_test": {
+    "features_set_to_train_median": [
+      "previous_meal_attendance",
+      "previous_leftover_kg",
+      "historical_dish_rating"
+    ],
+    "n": 215,
+    "mae": 41.95715077721311,
+    "rmse": 59.4055445301732,
+    "r2": 0.9053456238467028,
+    "bias": 14.789720284821225
+  },
+  "high_demand_test": {
+    "n_rows": 11,
+    "rf_mean_error": -42.05709496141208,
+    "train_target_max": 830.0,
+    "test_target_max": 859.0
+  },
+  "largest_errors_test": [
+    {
+      "date": "2026-09-21",
+      "meal": "dinner",
+      "dish": "Rice",
+      "exam_day": false,
+      "actual": 487.0,
+      "rf_pred": 616.6,
+      "error": 129.6
+    },
+    {
+      "date": "2026-09-23",
+      "meal": "dinner",
+      "dish": "Veg Biryani",
+      "exam_day": false,
+      "actual": 647.0,
+      "rf_pred": 517.5,
+      "error": -129.5
+    },
+    {
+      "date": "2026-09-23",
+      "meal": "lunch",
+      "dish": "Chapati",
+      "exam_day": false,
+      "actual": 797.0,
+      "rf_pred": 673.1,
+      "error": -123.9
+    },
+    {
+      "date": "2026-09-25",
+      "meal": "dinner",
+      "dish": "Chapati",
+      "exam_day": false,
+      "actual": 675.0,
+      "rf_pred": 554.0,
+      "error": -121.0
+    },
+    {
+      "date": "2026-09-26",
+      "meal": "lunch",
+      "dish": "Paneer Butter Masala",
+      "exam_day": false,
+      "actual": 326.0,
+      "rf_pred": 446.7,
+      "error": 120.7
+    },
+    {
+      "date": "2026-09-27",
+      "meal": "dinner",
+      "dish": "Veg Biryani",
+      "exam_day": false,
+      "actual": 377.0,
+      "rf_pred": 491.3,
+      "error": 114.3
+    },
+    {
+      "date": "2026-09-19",
+      "meal": "dinner",
+      "dish": "Dal Fry",
+      "exam_day": false,
+      "actual": 541.0,
+      "rf_pred": 435.8,
+      "error": -105.2
+    },
+    {
+      "date": "2026-09-23",
+      "meal": "lunch",
+      "dish": "Rice",
+      "exam_day": false,
+      "actual": 859.0,
+      "rf_pred": 754.1,
+      "error": -104.9
+    }
+  ],
+  "daily_mae": [
+    {
+      "date": "2026-09-02",
+      "baseline": 52.2,
+      "rf": 35.05386746722586
+    },
+    {
+      "date": "2026-09-03",
+      "baseline": 37.3125,
+      "rf": 35.60124890454914
+    },
+    {
+      "date": "2026-09-04",
+      "baseline": 57.84285714285715,
+      "rf": 21.42823429813931
+    },
+    {
+      "date": "2026-09-05",
+      "baseline": 53.43076923076922,
+      "rf": 22.887681961984356
+    },
+    {
+      "date": "2026-09-06",
+      "baseline": 46.4,
+      "rf": 22.092251549589896
+    },
+    {
+      "date": "2026-09-07",
+      "baseline": 58.31428571428571,
+      "rf": 22.576802482850212
+    },
+    {
+      "date": "2026-09-08",
+      "baseline": 71.33333333333336,
+      "rf": 28.19754817563093
+    },
+    {
+      "date": "2026-09-09",
+      "baseline": 120.0875,
+      "rf": 47.21190459969085
+    },
+    {
+      "date": "2026-09-10",
+      "baseline": 56.814285714285724,
+      "rf": 30.894015437534343
+    },
+    {
+      "date": "2026-09-11",
+      "baseline": 39.7875,
+      "rf": 23.829706124999507
+    },
+    {
+      "date": "2026-09-12",
+      "baseline": 65.73846153846155,
+      "rf": 20.042412487723368
+    },
+    {
+      "date": "2026-09-13",
+      "baseline": 75.26153846153845,
+      "rf": 39.14698502870722
+    },
+    {
+      "date": "2026-09-14",
+      "baseline": 67.76923076923077,
+      "rf": 53.619646847631415
+    },
+    {
+      "date": "2026-09-15",
+      "baseline": 55.72500000000001,
+      "rf": 26.57220785298275
+    },
+    {
+      "date": "2026-09-16",
+      "baseline": 62.9,
+      "rf": 30.621494985469006
+    },
+    {
+      "date": "2026-09-17",
+      "baseline": 44.512499999999996,
+      "rf": 25.23322455637488
+    },
+    {
+      "date": "2026-09-18",
+      "baseline": 43.87500000000001,
+      "rf": 23.545282860873197
+    },
+    {
+      "date": "2026-09-19",
+      "baseline": 39.15,
+      "rf": 27.310506304472064
+    },
+    {
+      "date": "2026-09-20",
+      "baseline": 66.60000000000001,
+      "rf": 30.405990523060282
+    },
+    {
+      "date": "2026-09-21",
+      "baseline": 50.271428571428565,
+      "rf": 33.84105913938221
+    },
+    {
+      "date": "2026-09-22",
+      "baseline": 33.55,
+      "rf": 23.738650441648492
+    },
+    {
+      "date": "2026-09-23",
+      "baseline": 77.94999999999999,
+      "rf": 49.34911141457752
+    },
+    {
+      "date": "2026-09-24",
+      "baseline": 43.38666666666666,
+      "rf": 27.584497235689625
+    },
+    {
+      "date": "2026-09-25",
+      "baseline": 40.4,
+      "rf": 37.738193260703625
+    },
+    {
+      "date": "2026-09-26",
+      "baseline": 119.33333333333331,
+      "rf": 31.6140296688155
+    },
+    {
+      "date": "2026-09-27",
+      "baseline": 83.95000000000002,
+      "rf": 44.033626646156165
+    },
+    {
+      "date": "2026-09-28",
+      "baseline": 38.912499999999994,
+      "rf": 29.038414422597075
+    }
+  ],
+  "xgboost_scored_on_test": false,
+  "frozen_artifacts_unchanged_after_run": true,
+  "figures": [
+    "docs/figures/final_actual_vs_predicted.png",
+    "docs/figures/final_daily_mae.png",
+    "docs/figures/final_error_by_meal.png",
+    "docs/figures/final_residuals.png"
+  ]
+}

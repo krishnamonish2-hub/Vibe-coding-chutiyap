@@ -1,0 +1,320 @@
+{
+  "model_version": "rf-v1-synthetic",
+  "model_type": "random_forest",
+  "trained_on": "synthetic",
+  "target": "actual_dish_consumers",
+  "feature_names": [
+    "historical_dish_demand",
+    "historical_dish_rating",
+    "previous_leftover_kg",
+    "day_of_week",
+    "temperature",
+    "rainfall",
+    "previous_meal_attendance",
+    "interested_taps",
+    "total_responses",
+    "tap_share",
+    "response_rate",
+    "projected_interest",
+    "num_dishes_in_meal",
+    "is_weekend",
+    "is_holiday",
+    "is_exam_day",
+    "is_festival",
+    "is_new_dish",
+    "meal_type_breakfast",
+    "meal_type_dinner",
+    "meal_type_lunch",
+    "dish_category_beverage",
+    "dish_category_bread",
+    "dish_category_breakfast_item",
+    "dish_category_dal",
+    "dish_category_dessert",
+    "dish_category_fruit",
+    "dish_category_main_nonveg",
+    "dish_category_main_veg",
+    "dish_category_side",
+    "dish_category_staple_rice",
+    "dish_name_Aloo Gobi",
+    "dish_name_Aloo Matar",
+    "dish_name_Aloo Paratha",
+    "dish_name_Banana",
+    "dish_name_Bhindi Fry",
+    "dish_name_Boiled Eggs",
+    "dish_name_Bread Omelette",
+    "dish_name_Buttermilk",
+    "dish_name_Chapati",
+    "dish_name_Chicken Biryani",
+    "dish_name_Chicken Curry",
+    "dish_name_Chole",
+    "dish_name_Coffee",
+    "dish_name_Cornflakes and Milk",
+    "dish_name_Curd",
+    "dish_name_Dal Fry",
+    "dish_name_Dal Tadka",
+    "dish_name_Egg Curry",
+    "dish_name_Gulab Jamun",
+    "dish_name_Ice Cream",
+    "dish_name_Idli Sambar",
+    "dish_name_Kadai Paneer",
+    "dish_name_Kadhi",
+    "dish_name_Kheer",
+    "dish_name_Lauki Sabzi",
+    "dish_name_Masala Dosa",
+    "dish_name_Mixed Veg",
+    "dish_name_Palak Paneer",
+    "dish_name_Paneer Butter Masala",
+    "dish_name_Poha",
+    "dish_name_Rajma",
+    "dish_name_Rice",
+    "dish_name_Salad",
+    "dish_name_Soya Chunks",
+    "dish_name_Tea",
+    "dish_name_Upma",
+    "dish_name_Veg Biryani",
+    "dish_name_Vegetable Soup"
+  ],
+  "n_features": 69,
+  "hyperparameters": {
+    "n_estimators": 500,
+    "max_depth": 12,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "max_features": 1.0
+  },
+  "random_state": 42,
+  "tuning": {
+    "grid": {
+      "n_estimators": [
+        200,
+        500
+      ],
+      "max_depth": [
+        null,
+        12
+      ],
+      "min_samples_split": [
+        2,
+        10
+      ],
+      "min_samples_leaf": [
+        1,
+        3
+      ],
+      "max_features": [
+        1.0,
+        0.5,
+        "sqrt"
+      ]
+    },
+    "n_combinations": 48,
+    "selection_metric": "validation MAE",
+    "fit_on": "train",
+    "results_file": "random_forest_tuning.csv"
+  },
+  "split": {
+    "train": {
+      "rows": 940,
+      "days": 63,
+      "start": "2026-07-01",
+      "end": "2026-09-01",
+      "exam_days": 0,
+      "new_dish_rows": 1
+    },
+    "val": {
+      "rows": 182,
+      "days": 13,
+      "start": "2026-09-02",
+      "end": "2026-09-14",
+      "exam_days": 6,
+      "new_dish_rows": 0
+    }
+  },
+  "test_set_used": false,
+  "metrics": {
+    "validation": {
+      "baseline": {
+        "n": 182,
+        "mae": 61.65714285714287,
+        "rmse": 83.77861459666342,
+        "r2": 0.807973837912249,
+        "bias": -17.241758241758248
+      },
+      "random_forest": {
+        "n": 182,
+        "mae": 31.084319624773407,
+        "rmse": 41.788438795246094,
+        "r2": 0.9522243784433398,
+        "bias": -10.651573694711626
+      }
+    },
+    "train": {
+      "baseline": {
+        "n": 940,
+        "mae": 56.6413829787234,
+        "rmse": 75.76583992803089,
+        "r2": 0.8276157115755264,
+        "bias": 0.8332978723404246
+      },
+      "random_forest": {
+        "n": 940,
+        "mae": 11.830210586669365,
+        "rmse": 15.345344888812377,
+        "r2": 0.992928621175321,
+        "bias": 0.050214407077808956
+      }
+    }
+  },
+  "metrics_by_meal_type_validation": [
+    {
+      "group": "breakfast",
+      "model": "Baseline (historical demand)",
+      "n": 58,
+      "mae": 61.57241379310344,
+      "rmse": 83.40277015162937,
+      "r2": 0.6847621808028002,
+      "bias": -20.841379310344827,
+      "small_sample": false
+    },
+    {
+      "group": "breakfast",
+      "model": "Random Forest",
+      "n": 58,
+      "mae": 27.984102999069513,
+      "rmse": 39.566694247696255,
+      "r2": 0.9290525325951329,
+      "bias": -17.858258756658337,
+      "small_sample": false
+    },
+    {
+      "group": "lunch",
+      "model": "Baseline (historical demand)",
+      "n": 62,
+      "mae": 66.38387096774196,
+      "rmse": 88.54535196631561,
+      "r2": 0.7962306716510246,
+      "bias": -18.016129032258064,
+      "small_sample": false
+    },
+    {
+      "group": "lunch",
+      "model": "Random Forest",
+      "n": 62,
+      "mae": 34.63483646523425,
+      "rmse": 44.89301816132775,
+      "r2": 0.9476200734799944,
+      "bias": -9.383097713803078,
+      "small_sample": false
+    },
+    {
+      "group": "dinner",
+      "model": "Baseline (historical demand)",
+      "n": 62,
+      "mae": 57.00967741935485,
+      "rmse": 79.09622967238765,
+      "r2": 0.7201330841110533,
+      "bias": -13.100000000000005,
+      "small_sample": false
+    },
+    {
+      "group": "dinner",
+      "model": "Random Forest",
+      "n": 62,
+      "mae": 30.434005434164597,
+      "rmse": 40.57404547651698,
+      "r2": 0.9263561269336623,
+      "bias": -5.1783120370248605,
+      "small_sample": false
+    }
+  ],
+  "metrics_by_exam_day_validation": [
+    {
+      "group": "non-exam day",
+      "model": "Baseline (historical demand)",
+      "n": 97,
+      "mae": 53.136082474226804,
+      "rmse": 75.68147303551076,
+      "r2": 0.8301369219208539,
+      "bias": -2.92577319587629,
+      "small_sample": false
+    },
+    {
+      "group": "non-exam day",
+      "model": "Random Forest",
+      "n": 97,
+      "mae": 27.02728461088069,
+      "rmse": 37.837497253072286,
+      "r2": 0.957541500527916,
+      "bias": -0.7751928046676598,
+      "small_sample": false
+    },
+    {
+      "group": "exam day",
+      "model": "Baseline (historical demand)",
+      "n": 85,
+      "mae": 71.38117647058826,
+      "rmse": 92.15373089380083,
+      "r2": 0.7698804526350151,
+      "bias": -33.57882352941177,
+      "small_sample": false
+    },
+    {
+      "group": "exam day",
+      "model": "Random Forest",
+      "n": 85,
+      "mae": 35.714112522980386,
+      "rmse": 45.88338248997533,
+      "r2": 0.9429522502189097,
+      "bias": -21.922267180997096,
+      "small_sample": false
+    }
+  ],
+  "validation_optional_inputs_missing": {
+    "features_set_to_train_median": [
+      "previous_meal_attendance",
+      "previous_leftover_kg",
+      "historical_dish_rating"
+    ],
+    "random_forest": {
+      "n": 182,
+      "mae": 37.98898173316831,
+      "rmse": 52.98454581376958,
+      "r2": 0.9231944709430375,
+      "bias": 4.409162556393732
+    }
+  },
+  "prediction_validity_validation": {
+    "n_nan": 0,
+    "n_inf": 0,
+    "n_negative": 0,
+    "n_above_total_students": 0,
+    "min": 115.83178333333332,
+    "max": 781.8937333333333
+  },
+  "inference_postprocessing": "round to nearest integer and clip to [0, total_students] (applied in the API only; metrics above use raw predictions)",
+  "top_permutation_importance": {
+    "tap_share": 52.739,
+    "historical_dish_demand": 48.391,
+    "projected_interest": 46.397,
+    "historical_dish_rating": 9.435,
+    "dish_name_Tea": 1.874,
+    "previous_meal_attendance": 0.647,
+    "temperature": 0.498,
+    "dish_category_beverage": 0.307,
+    "dish_category_main_veg": 0.294,
+    "rainfall": 0.231
+  },
+  "artifacts": {
+    "model": "random_forest.joblib",
+    "preprocessor": "preprocessor.joblib",
+    "preprocessor_md5": "df5f28af320f3afcf7fb3c47b25e5be6",
+    "feature_schema": "feature_schema.json",
+    "feature_schema_md5": "58bced1bbc4440a326642c50fdb9fbad",
+    "raw_data_md5": "0a8d9df2a9491ef15e86d93a71c3bf3c"
+  },
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.1",
+    "numpy": "2.5.4"
+  }
+}
