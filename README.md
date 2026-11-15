@@ -41,13 +41,16 @@ service: provisional (T-4h) and final (T-30m) predictions from Day 31, history f
 UI: dashboard, simulation controls, meals, predictions, outcomes, dish renaming and the typed-RESET reset flow. Phase 6
 adds the demo student pages: vote (dishes or Not Eating) until the cutoff, and my responses. Phase 7 adds the
 Reports page (prediction accuracy vs synthetic actuals, waste vs the fixed plan) and the contract §3 training-data CSV
-export (download only; no automatic retraining). Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
+export (download only; no automatic retraining). Phase 8 adds an end-to-end test of a full 60-day run (mock ML,
+including a same-seed determinism check) and the [demo script](docs/demo-script.md). The phase map is in
+[docs/architecture.md](docs/architecture.md#3-phase-map).
 
 ## Prerequisites
 
 * Node.js ≥ 22.12 and npm
 * PostgreSQL 16
-* The ML service, run with its own existing setup (see [ml/README.md](ml/README.md)); optional until Phase 5
+* The ML service, run with its own existing setup (see [ml/README.md](ml/README.md)); optional. Without it,
+  predictions are recorded as unavailable and the kitchen cooks the fixed plan
 
 ## Run locally
 
@@ -65,11 +68,12 @@ export (download only; no automatic retraining). Later phases are listed in [doc
    cd frontend && npm ci && npm run dev
    ```
 
-4. Open http://localhost:5173 and sign in with the admin or demo-student account from `.env`. The status panel shows
-   the backend, database and ML service.
+4. Open http://localhost:5173 and sign in with the admin or demo-student account from `.env`. Admins land on the
+   dashboard (backend, database and ML readiness), the demo student on the voting page. For a guided walkthrough see
+   [docs/demo-script.md](docs/demo-script.md).
 
-The ML service is started exactly as documented in `ml/README.md` (port 8001). If it is not running, the status panel
-shows it as not reachable and the rest of the app still works.
+The ML service is started exactly as documented in `ml/README.md` (port 8001). If it is not running, the dashboard
+shows it as not ready and the rest of the app still works.
 
 ## Tests
 

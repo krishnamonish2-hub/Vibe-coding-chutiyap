@@ -85,6 +85,11 @@ seeded PRNG `(run seed, meal index)`, so results do not depend on how time was a
 | P8 | Reports + CSV export (contract §3) | P5 |
 | P9 | End-to-end run, demo script | P5–P8 |
 
+Owner's numbering: Phase 5 = P6 (admin pages), Phase 6 = P7, Phase 7 = P8, Phase 8 = P9. P9 is delivered as
+`backend/tests/e2e-simulation.test.js` (full 60-day run through the HTTP API with a mock ML service, demo-student votes,
+one injected outage, kitchen rule, report/export consistency, same-seed byte-identical export) and
+[`docs/demo-script.md`](demo-script.md).
+
 ## 4. Database design
 
 ### 4.1 Tables
