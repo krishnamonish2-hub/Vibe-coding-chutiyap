@@ -178,7 +178,8 @@ Phase 4 exposes it as `POST /api/admin/simulation/reset` and stops the scheduler
 | `GET /api/admin/meals?day=`, `GET /api/admin/meals/:id`, `PUT /api/admin/meals/:id/outcomes` | admin | P4A |
 | `POST /api/admin/meals/:id/predictions/:kind/retry` | admin | P4B |
 | `GET /api/admin/reports/accuracy`, `GET /api/admin/reports/waste`, `GET /api/admin/export/training.csv` | admin | P8 |
-| `GET /api/student/meals/upcoming`, `PUT /api/student/meals/:id/response` | student | P4A (pages in P7) |
+| `GET /api/student/meals/upcoming`, `PUT /api/student/meals/:id/response` | student | P4A (pages in owner's Phase 6) |
+| `GET /api/student/meals/responses` | student | owner's Phase 6 |
 
 Errors: `{ "error": { "code", "message", "details?" } }`.
 
@@ -294,9 +295,16 @@ is typed exactly), **Meals** (per day, all/upcoming/completed, prediction badges
 and ML names, frozen counts, every provisional/final attempt with status and reason, retry for non-ok attempts with
 `applies_to_kitchen`, per-dish outcomes vs the fixed-plan counterfactual), **Predictions** (all predicted meals, status
 counts, failures-only filter), **Outcomes** (learning vs prediction-period totals, per-meal table), **Dishes** (rename
-display names inline; ID and ML name read-only). Students keep the P3 welcome page (student pages are P7). Polling: 3 s
+display names inline; ID and ML name read-only). Polling: 3 s
 for simulation status, 5 s for overviews while the clock runs. Component tests: `frontend/src/test/` (Vitest + jsdom +
 Testing Library, fetch mocked).
+
+**Student pages (owner's Phase 6 = plan P7)** — `frontend/src/pages/student/`, under `/student` (student role; enforced by
+every `/api/student` route): **Vote** lists meals whose window is open by the simulated clock; the student picks at least
+one dish or “Not eating” (both count as responses) and can change the answer until the T-30m cutoff (409 → “voting has
+closed”). **My responses** uses the read-only `GET /api/student/meals/responses` (own responses in the current run,
+newest first, only those with `responded_at <= sim_now`, with picked dishes and `can_change`). Signed-in students are
+redirected to `/student`, admins to `/admin`.
 
 ## 8. Configuration
 

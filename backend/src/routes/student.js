@@ -1,11 +1,11 @@
-// Student voting API (Phase 4A backend; the student pages come in Phase 7). Student role only, enforced here.
+// Student voting API (backend from Phase 4A; pages in frontend/src/pages/student). Student role only, enforced here.
 
 import { Router } from 'express';
 import { z } from 'zod';
 
 import { parseOrThrow } from '../lib/validate.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { listUpcomingMeals, submitResponse } from '../services/voting.js';
+import { listMyResponses, listUpcomingMeals, submitResponse } from '../services/voting.js';
 
 const DISH_ID = z.string().regex(/^D[0-9]{3}$/);
 
@@ -21,6 +21,11 @@ export function createStudentRouter({ pool, config }) {
 
   router.get('/meals/upcoming', async (req, res) => {
     res.json(await listUpcomingMeals(pool, req.user.studentId));
+  });
+
+  // Phase 6: the student's own responses (read-only).
+  router.get('/meals/responses', async (req, res) => {
+    res.json(await listMyResponses(pool, req.user.studentId));
   });
 
   router.put('/meals/:id/response', async (req, res) => {

@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-import { apiGet } from './api/client.js';
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import StudentLayout from './components/StudentLayout.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
 import Dishes from './pages/admin/Dishes.jsx';
@@ -13,58 +12,8 @@ import Meals from './pages/admin/Meals.jsx';
 import Outcomes from './pages/admin/Outcomes.jsx';
 import Predictions from './pages/admin/Predictions.jsx';
 import Simulation from './pages/admin/Simulation.jsx';
-
-const REFRESH_MS = 10000;
-
-function useHealth() {
-  const [state, setState] = useState({ loading: true, health: null, error: null });
-  useEffect(() => {
-    const controller = new AbortController();
-    async function load() {
-      try {
-        const health = await apiGet('/api/health', { signal: controller.signal });
-        setState({ loading: false, health, error: null });
-      } catch (err) {
-        if (err.name !== 'AbortError') setState({ loading: false, health: null, error: err.message });
-      }
-    }
-    load();
-    const timer = setInterval(load, REFRESH_MS);
-    return () => {
-      controller.abort();
-      clearInterval(timer);
-    };
-  }, []);
-  return state;
-}
-
-function StatusRow({ label, ok, text }) {
-  return (
-    <tr>
-      <th scope="row">{label}</th>
-      <td><span className={`dot ${ok ? 'dot-ok' : 'dot-bad'}`} aria-hidden="true" /> {text}</td>
-    </tr>
-  );
-}
-
-function StatusPanel() {
-  const { loading, health, error } = useHealth();
-  if (loading) return <p>Checking services…</p>;
-  if (error) return <p className="error">Backend: {error}</p>;
-  const { ml } = health;
-  // Same strict readiness rule as the backend: status "ok" AND model_loaded (L1).
-  const mlText = !ml.reachable ? 'not reachable'
-    : ml.ready ? `ready (${ml.model_version})` : 'reachable, not ready';
-  return (
-    <table className="status">
-      <tbody>
-        <StatusRow label="Backend" ok text="ok" />
-        <StatusRow label="Database" ok={health.database === 'ok'} text={health.database} />
-        <StatusRow label="ML service" ok={ml.ready === true} text={mlText} />
-      </tbody>
-    </table>
-  );
-}
+import StudentMeals from './pages/student/StudentMeals.jsx';
+import StudentResponses from './pages/student/StudentResponses.jsx';
 
 function Header() {
   const { user, logout } = useAuth();
@@ -84,26 +33,10 @@ function Header() {
   );
 }
 
-// Signed-in landing page: admins go to the admin dashboard; students keep the Phase 3 welcome page (student pages are
-// Phase 7).
+// Signed-in landing page: each role goes to its own area.
 function Home() {
   const { user } = useAuth();
-  if (user.role === 'admin') return <Navigate to="/admin" replace />;
-  return (
-    <>
-      <section className="card" aria-labelledby="welcome-heading">
-        <h2 id="welcome-heading">Welcome</h2>
-        <p>
-          Signed in as <strong>{user.role === 'admin' ? 'administrator' : `demo student (${user.student_code})`}</strong>.
-          {' '}The {user.role === 'admin' ? 'simulation and planning' : 'voting'} pages are added in later phases.
-        </p>
-      </section>
-      <section aria-labelledby="status-heading">
-        <h2 id="status-heading">System status</h2>
-        <StatusPanel />
-      </section>
-    </>
-  );
+  return <Navigate to={user.role === 'admin' ? '/admin' : '/student'} replace />;
 }
 
 // Routes without the router, so tests can render them inside a MemoryRouter.
@@ -127,6 +60,11 @@ export function AppRoutes() {
             <Route path="predictions" element={<Predictions />} />
             <Route path="outcomes" element={<Outcomes />} />
             <Route path="dishes" element={<Dishes />} />
+          </Route>
+          {/* Student area (demo student S0001); enforced by every /api/student route on the server. */}
+          <Route path="/student" element={<ProtectedRoute roles={['student']}><StudentLayout /></ProtectedRoute>}>
+            <Route index element={<StudentMeals />} />
+            <Route path="responses" element={<StudentResponses />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

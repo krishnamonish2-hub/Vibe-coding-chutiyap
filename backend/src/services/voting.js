@@ -104,3 +104,32 @@ export async function submitResponse(pool, studentId, mealId, { response, dishId
     return ownResponse(client, mealId, studentId, respondedAt);
   });
 }
+
+// The student's own responses in the current run, newest first. Same visibility rule as above: a response is shown
+// only once responded_at <= sim_now (synthetic responses for S0001 are generated ahead of time).
+export async function listMyResponses(db, studentId) {
+  const run = await currentRun(db);
+  if (!run) return { sim_now: null, responses: [] };
+  const { rows } = await db.query(
+    `SELECT m.id AS meal_id, m.day_number AS day, m.date, m.meal_type, m.serve_at, m.status AS meal_status,
+            m.voting_closes_at, r.response, r.responded_at,
+            coalesce(json_agg(json_build_object('dish_id', d.id, 'display_name', d.display_name) ORDER BY md.position)
+                     FILTER (WHERE d.id IS NOT NULL), '[]') AS dishes
+       FROM meal_responses r
+       JOIN meals m ON m.id = r.meal_id AND m.run_id = $1
+       LEFT JOIN response_picks p ON p.response_id = r.id
+       LEFT JOIN meal_dishes md ON md.meal_id = p.meal_id AND md.dish_id = p.dish_id
+       LEFT JOIN dishes d ON d.id = p.dish_id
+      WHERE r.student_id = $2 AND r.responded_at <= $3
+      GROUP BY m.id, r.id
+      ORDER BY m.serve_at DESC
+      LIMIT 200`,
+    [run.id, studentId, run.sim_now],
+  );
+  return {
+    sim_now: run.sim_now.toISOString(),
+    responses: rows.map((r) => ({ ...r, serve_at: r.serve_at.toISOString(), voting_closes_at: r.voting_closes_at.toISOString(),
+      responded_at: r.responded_at.toISOString(), can_change: r.meal_status !== 'voting_closed' && r.meal_status !== 'completed'
+        && new Date(r.voting_closes_at) > run.sim_now })),
+  };
+}

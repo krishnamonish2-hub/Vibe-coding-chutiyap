@@ -267,3 +267,7 @@ code { background: var(--neutral-bg); padding: 0 4px; border-radius: 4px; }
   .facts { grid-template-columns: 1fr; }
   .facts dd { margin-bottom: 6px; }
 }
+
+/* ---------- Student pages (Phase 6) ---------- */
+fieldset.plain { border: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.dish-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 2px 12px; padding-left: 24px; }
