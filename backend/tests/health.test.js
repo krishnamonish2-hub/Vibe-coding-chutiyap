@@ -4,6 +4,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.js';
+import { testConfig } from './helpers/app.js';
 import { fetchMlHealth } from '../src/routes/health.js';
 
 const okPool = { query: async () => ({ rows: [{ '?column?': 1 }] }) };
@@ -13,7 +14,7 @@ const mlDown = async () => ({ reachable: false, model_loaded: false, model_versi
 
 describe('GET /api/health', () => {
   it('reports ok when the database and the ML model are available', async () => {
-    const res = await request(createApp({ pool: okPool, getMlHealth: mlOk })).get('/api/health');
+    const res = await request(createApp({ pool: okPool, config: testConfig(), getMlHealth: mlOk })).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       status: 'ok', backend: 'ok', database: 'ok',
@@ -22,7 +23,7 @@ describe('GET /api/health', () => {
   });
 
   it('reports degraded (still 200) when the ML service is down', async () => {
-    const res = await request(createApp({ pool: okPool, getMlHealth: mlDown })).get('/api/health');
+    const res = await request(createApp({ pool: okPool, config: testConfig(), getMlHealth: mlDown })).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('degraded');
     expect(res.body.ml.reachable).toBe(false);
@@ -30,20 +31,20 @@ describe('GET /api/health', () => {
 
   it('reports degraded when the ML service is up but its model is not loaded', async () => {
     const mlDegraded = async () => ({ reachable: true, model_loaded: false, model_version: null });
-    const res = await request(createApp({ pool: okPool, getMlHealth: mlDegraded })).get('/api/health');
+    const res = await request(createApp({ pool: okPool, config: testConfig(), getMlHealth: mlDegraded })).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('degraded');
   });
 
   it('returns 503 when the database is unavailable', async () => {
-    const res = await request(createApp({ pool: brokenPool, getMlHealth: mlOk })).get('/api/health');
+    const res = await request(createApp({ pool: brokenPool, config: testConfig(), getMlHealth: mlOk })).get('/api/health');
     expect(res.status).toBe(503);
     expect(res.body).toMatchObject({ status: 'degraded', database: 'error' });
   });
 });
 
 describe('error format', () => {
-  const app = createApp({ pool: okPool, getMlHealth: mlOk });
+  const app = createApp({ pool: okPool, config: testConfig(), getMlHealth: mlOk });
 
   it('returns a JSON 404 for unknown routes', async () => {
     const res = await request(app).get('/api/does-not-exist');

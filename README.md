@@ -32,9 +32,9 @@ frontend (React + Vite) ──► backend (Node.js + Express) ──► PostgreS
 
 ## Status
 
-Phase 1 (foundation) and Phase 2 (database) are in place: backend and frontend skeletons, configuration, migration
-runner, `GET /api/health`, CI, the PostgreSQL schema (`backend/db/migrations/001_schema.sql`) and the synthetic seed
-(38 dishes, 1,000 students). Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
+Phases 1–3 are in place: backend and frontend skeletons, configuration, migration runner, `GET /api/health`, CI, the
+PostgreSQL schema and synthetic seed (38 dishes, 1,000 students), sign-in with admin/student roles enforced by the
+backend, dish display-name renaming, the audit log and the reset service. Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
 
 ## Prerequisites
 
@@ -44,7 +44,8 @@ runner, `GET /api/health`, CI, the PostgreSQL schema (`backend/db/migrations/001
 
 ## Run locally
 
-1. Copy `.env.example` to `.env` at the repository root and set `DATABASE_URL`.
+1. Copy `.env.example` to `.env` at the repository root and set `DATABASE_URL`, `JWT_SECRET` and the two seed
+   accounts (`ADMIN_*`, `DEMO_STUDENT_*`). Never commit `.env`.
 2. Backend:
 
    ```bash
@@ -57,7 +58,8 @@ runner, `GET /api/health`, CI, the PostgreSQL schema (`backend/db/migrations/001
    cd frontend && npm ci && npm run dev
    ```
 
-4. Open http://localhost:5173. The status panel shows the backend, database and ML service.
+4. Open http://localhost:5173 and sign in with the admin or demo-student account from `.env`. The status panel shows
+   the backend, database and ML service.
 
 The ML service is started exactly as documented in `ml/README.md` (port 8001). If it is not running, the status panel
 shows it as not reachable and the rest of the app still works.

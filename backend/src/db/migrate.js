@@ -55,9 +55,9 @@ export async function migrate(pool, { dir = DEFAULT_MIGRATIONS_DIR, log = () => 
 
 // CLI: `npm run migrate`
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const { loadConfig } = await import('../config.js');
+  const { loadDatabaseUrl } = await import('../config.js');
   const { createPool } = await import('./pool.js');
-  const pool = createPool(loadConfig().databaseUrl);
+  const pool = createPool(loadDatabaseUrl());
   try {
     const result = await migrate(pool, { log: (m) => console.log(m) });
     console.log(`migrations: ${result.applied.length} applied, ${result.total} total`);

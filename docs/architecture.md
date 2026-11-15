@@ -81,9 +81,9 @@ seeded PRNG `(run seed, meal index)`, so results do not depend on how time was a
 | Table | Columns (PK **bold**) | Constraints / indexes |
 |---|---|---|
 | `schema_migrations` | **version**, applied_at | Created by the migration runner (P1) |
-| `users` | **id**, email, password_hash, role (`admin`\|`student`), student_id, created_at | email unique, lower-case; student_id unique → students; CHECK role = student ⇔ student_id not null. Accounts are created in P3 |
+| `users` | **id**, email, password_hash, role (`admin`\|`student`), student_id, session_version (≥ 1, default 1; migration 003), created_at | email unique, lower-case; student_id unique → students; CHECK role = student ⇔ student_id not null. Accounts are created in P3 |
 | `students` | **id** integer, code (`S0001`…`S1000`) | code unique |
-| `dishes` | **id** text (`D001`…, immutable), display_name, ml_dish_name, category, is_veg, portion_kg, active, created_at, updated_at | ml_dish_name unique; id and ml_dish_name immutable (trigger); category one of the 10 recommended values; unique (id, ml_dish_name) |
+| `dishes` | **id** text (`D001`…, immutable), display_name, ml_dish_name, category, is_veg, portion_kg, active, created_at, updated_at | ml_dish_name unique; id and ml_dish_name immutable (trigger); display_name unique ignoring case (migration 002); category one of the 10 recommended values; unique (id, ml_dish_name). Only display_name is editable through the API |
 | `simulation_runs` | **id**, status (`running`\|`paused`\|`completed`), seed, start_date (Day 1), total_days, learning_days, activation_day, total_students, speed_sim_minutes, sim_now, calendar_config, created_at | at most one row; CHECK learning_days = 30, activation_day = 31, total_students = 1000, sim_now ≥ Day 0 19:30 UTC. The current day is derived from sim_now |
 | `sim_days` | **(run_id, day_number)**, date, is_weekend, is_holiday, is_exam_day, is_festival, temperature, rainfall | FK run ON DELETE CASCADE |
 | `meals` | **id** text (`r{run}-d031-lunch`), run_id, day_number, date, meal_type, serve_at, voting_opens_at, provisional_at, voting_closes_at, completes_at, phase, status, prov_total_responses, prov_not_eating, final_total_responses, final_not_eating, headcount | unique (run_id, date, meal_type); index (run_id, meal_type, serve_at); FK run CASCADE |
@@ -151,7 +151,10 @@ P2 tests cover all five cases.
 One transaction: lock run (`FOR UPDATE`) → build summary (run id, seed, dates, status, sim_now, day, counts) →
 `INSERT audit_log (action 'simulation.reset', entity 'simulation_run:<id>', before = summary)` →
 `DELETE simulation_runs` (cascade) → `COMMIT`. On failure everything rolls back and `simulation.reset_failed` is
-logged separately. The scheduler is stopped and the mutex held for the duration.
+logged separately. The confirmation must be exactly `RESET`.
+
+Phase 3 implements this as `resetSimulation()` in `backend/src/services/simulation-reset.js` (tested).
+Phase 4 exposes it as `POST /api/admin/simulation/reset` and stops the scheduler (mutex held) before calling it.
 
 ## 5. Backend API (all under `/api`)
 
@@ -167,6 +170,25 @@ logged separately. The scheduler is stopped and the mutex held for the duration.
 | `GET /api/student/meals/upcoming`, `PUT /api/student/meals/:id/response` | student | P7 |
 
 Errors: `{ "error": { "code", "message", "details?" } }`.
+
+**Authentication and authorization (P3).** `POST /api/auth/login {email, password}` sets an httpOnly,
+`SameSite=Strict` session cookie (`messmind_session`, path `/api`, HS256 JWT holding the user id `sub` and the user's
+`session_version` at login as `sv`, 8 h default, `Secure` when `COOKIE_SECURE=true`, default on in production). Every
+protected request re-reads the user, role and `session_version` from the database and rejects the token unless `sv`
+matches, so deleted accounts, role changes and logouts apply immediately. **Logout** increments `session_version`
+(only if the presented token is still current) and clears the cookie: every token issued to that user before the
+logout — including copies — stops working at once, on all of that user's devices. A new login receives the new version.
+Tokens without `sv` (issued before migration 003) are rejected. Admin routes use `requireAuth` + `requireRole('admin')`
+on the server: no session → 401 `unauthenticated`, wrong role → 403 `forbidden`. Writes must be `application/json`
+(415 otherwise). Failed logins are limited per client IP (default 10 per 15 min → 429). Wrong password and unknown
+email give the same 401.
+
+**Dish renaming (P3).** `PATCH /api/admin/dishes/:id` accepts exactly `{ "display_name": "…" }` (trimmed, 1–100
+characters). `id` or `ml_dish_name` in the body → 400 `immutable_field`; any other field → 400 `validation_error`;
+name used by another dish (ignoring case) → 409 `display_name_taken`. A real change writes a `dish.rename` audit entry
+(`before`/`after` display and ML names) in the same transaction; renaming to the current name is a no-op.
+
+**Audit actions so far:** `user.create` (seed), `dish.rename`, `simulation.reset`, `simulation.reset_failed`.
 
 `GET /api/health` → `200 { status: "ok"|"degraded", backend: "ok", database: "ok", ml: { reachable, model_loaded,
 model_version } }`; `503` with `database: "error"` when PostgreSQL is unavailable. ML down ⇒ `degraded` (still 200).
@@ -203,7 +225,8 @@ one retry → `unavailable`. `/health` is checked via `model_loaded` (cached 60 
 ## 7. Frontend pages
 
 Login · Admin: Simulation, Timeline, Meal detail, Dishes, Reports, Export (synthetic-data banner everywhere) ·
-Student (demo): Upcoming meals, My responses. P1 delivers only the shell with a backend status panel.
+Student (demo): Upcoming meals, My responses. P1 delivered the shell with a backend status panel; P3 adds the login
+page, sign-out, an auth context and protected routes (navigation only — the backend enforces every permission).
 
 ## 8. Configuration
 
@@ -213,6 +236,11 @@ Student (demo): Upcoming meals, My responses. P1 delivers only the shell with a 
 | `DATABASE_URL` | backend | — (required) | P1 |
 | `ML_API_URL` | backend | `http://127.0.0.1:8001` | P1 (health), P5 |
 | `ML_TIMEOUT_MS` | backend | `10000` (health check uses min(this, 2000)) | P1 |
-| `JWT_SECRET` | backend | — | P3 |
+| `JWT_SECRET` | backend server | — (required, ≥ 32 characters) | P3 |
+| `SESSION_TTL_HOURS` | backend | `8` (max 168) | P3 |
+| `COOKIE_SECURE` | backend | `true` in production, else `false` | P3 |
+| `LOGIN_MAX_FAILURES` | backend | `10` per 15 minutes per IP | P3 |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | seed | unset (account skipped); password ≥ 12 characters | P3 |
+| `DEMO_STUDENT_EMAIL`, `DEMO_STUDENT_PASSWORD` | seed | unset (account skipped); linked to `S0001` | P3 |
 | `ML_LIVE_TESTS` | backend tests | unset (skipped) | P5 |
 | `VITE_BACKEND_URL` | frontend dev proxy | `http://127.0.0.1:4000` | P1 |

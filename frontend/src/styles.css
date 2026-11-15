@@ -76,3 +76,54 @@ h1 { margin: 0 0 4px; }
 .dot-ok { background: var(--ok); }
 .dot-bad { background: var(--bad); }
 .error { color: var(--bad); }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.card h2 { margin-top: 0; }
+.narrow { max-width: 380px; }
+
+form { display: grid; gap: 8px; }
+label { font-weight: 600; font-size: 0.9rem; }
+input {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+}
+button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--fg);
+  color: var(--bg);
+  cursor: pointer;
+}
+button.secondary { background: transparent; color: var(--fg); border-color: var(--border); }
+button:disabled { opacity: 0.6; cursor: default; }

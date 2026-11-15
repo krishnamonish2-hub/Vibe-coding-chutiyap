@@ -9,6 +9,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.js';
+import { testConfig } from './helpers/app.js';
 import { createPool } from '../src/db/pool.js';
 import { listMigrations, migrate } from '../src/db/migrate.js';
 
@@ -66,7 +67,7 @@ describe.skipIf(!DATABASE_URL)('PostgreSQL integration', () => {
 
   it('GET /api/health reports database ok against the real database', async () => {
     const mlDown = async () => ({ reachable: false, model_loaded: false, model_version: null });
-    const res = await request(createApp({ pool, getMlHealth: mlDown })).get('/api/health');
+    const res = await request(createApp({ pool, config: testConfig(), getMlHealth: mlDown })).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.database).toBe('ok');
   });

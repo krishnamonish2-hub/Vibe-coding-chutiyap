@@ -48,8 +48,8 @@ describe.skipIf(!DATABASE_URL)('schema (001_schema.sql)', () => {
 
   // -------------------------------------------------------------------------
   describe('migration and seed', () => {
-    it('records 001_schema.sql and is idempotent', async () => {
-      expect(await listMigrations()).toContain('001_schema.sql');
+    it('records the migrations and is idempotent', async () => {
+      expect(await listMigrations()).toEqual(['001_schema.sql', '002_dish_display_name_unique.sql', '003_user_session_version.sql']);
       expect((await migrate(db)).applied).toEqual([]);
     });
 
@@ -64,7 +64,7 @@ describe.skipIf(!DATABASE_URL)('schema (001_schema.sql)', () => {
 
     it('re-seeding inserts nothing and keeps an admin rename', async () => {
       await db.query("UPDATE dishes SET display_name = 'Steamed Rice' WHERE id = 'D012'");
-      expect(await seed(db)).toEqual({ dishesInserted: 0, studentsInserted: 0 });
+      expect(await seed(db)).toEqual({ dishesInserted: 0, studentsInserted: 0, accountsCreated: 0 });
       const { rows } = await db.query("SELECT display_name, ml_dish_name FROM dishes WHERE id = 'D012'");
       expect(rows[0]).toEqual({ display_name: 'Steamed Rice', ml_dish_name: 'Rice' });
       await db.query("UPDATE dishes SET display_name = 'Rice' WHERE id = 'D012'");
@@ -445,7 +445,7 @@ describe.skipIf(!DATABASE_URL)('migration rollback', () => {
 
       // After removing the conflict the same migration applies cleanly.
       await ctx.pool.query('DROP TABLE simulation_runs');
-      expect((await migrate(ctx.pool)).applied).toEqual(['001_schema.sql']);
+      expect((await migrate(ctx.pool)).applied).toEqual(['001_schema.sql', '002_dish_display_name_unique.sql', '003_user_session_version.sql']);
     } finally {
       await ctx.drop();
     }
