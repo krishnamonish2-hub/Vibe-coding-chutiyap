@@ -9,7 +9,8 @@ import { DATABASE_URL, createTestSchema } from './helpers/db.js';
 
 const quiet = { error: () => {} };
 
-describe.skipIf(!DATABASE_URL)('simulation engine', () => {
+// Multi-day simulations take seconds (slower on CI runners), so these tests get 60 s instead of the default 5 s.
+describe.skipIf(!DATABASE_URL)('simulation engine', { timeout: 60_000 }, () => {
   let ctx;
   let db;
   let sim;
