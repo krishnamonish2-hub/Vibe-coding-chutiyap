@@ -177,7 +177,7 @@ Phase 4 exposes it as `POST /api/admin/simulation/reset` and stops the scheduler
 | `GET /api/admin/simulation`, `POST …/start`, `…/advance`, `…/play`, `…/pause`, `…/reset` | admin | P4A |
 | `GET /api/admin/meals?day=`, `GET /api/admin/meals/:id`, `PUT /api/admin/meals/:id/outcomes` | admin | P4A |
 | `POST /api/admin/meals/:id/predictions/:kind/retry` | admin | P4B |
-| `GET /api/admin/reports/accuracy`, `GET /api/admin/reports/waste`, `GET /api/admin/export/training.csv` | admin | P8 |
+| `GET /api/admin/reports/accuracy`, `GET /api/admin/reports/waste`, `GET /api/admin/export/training.csv` | admin | P8 (owner's Phase 7) |
 | `GET /api/student/meals/upcoming`, `PUT /api/student/meals/:id/response` | student | P4A (pages in owner's Phase 6) |
 | `GET /api/student/meals/responses` | student | owner's Phase 6 |
 
@@ -305,6 +305,21 @@ one dish or “Not eating” (both count as responses) and can change the answer
 closed”). **My responses** uses the read-only `GET /api/student/meals/responses` (own responses in the current run,
 newest first, only those with `responded_at <= sim_now`, with picked dishes and `can_change`). Signed-in students are
 redirected to `/student`, admins to `/admin`.
+
+**Reports and export (owner's Phase 7 = plan P8)** — `frontend/src/pages/admin/Reports.jsx` (`/admin/reports`), backed by
+`backend/src/services/reports.js` (read-only, admin-only):
+
+* `GET /api/admin/reports/accuracy` — for each kind (provisional, final): MAE and bias of the **current `ok`** attempt's
+  `predicted_consumers` vs the synthetic `actual_consumers` of completed meals, overall, per meal type and per day, plus
+  the baseline MAE of `hist_demand` (mean of the dish's last 5 servings, sent with the request) and counts of current
+  `ok` / `unavailable` / `error` attempts. Meals without an ok prediction are not scored; they are counted instead.
+* `GET /api/admin/reports/waste` — learning vs prediction-period totals and a per-day series of prepared servings,
+  fixed-plan servings, actual consumers, leftover kg vs fixed-plan leftover kg (saving in kg and %), and shortfall.
+* `GET /api/admin/export/training.csv` — contract §3 columns in contract order, one row per dish per **completed** meal:
+  `dish_name` = immutable `ml_dish_name`, `total_responses` / `interested_taps` = counts frozen at the cutoff,
+  `meal_attendance` = headcount, `post_meal_rating` = average rating (empty if none), booleans `True`/`False` like the
+  existing training CSV. It is a download only: **nothing is retrained**, and the page says the data is synthetic.
+* All three return 404 `no_simulation_run` before a run exists.
 
 ## 8. Configuration
 

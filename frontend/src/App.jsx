@@ -11,6 +11,7 @@ import MealDetail from './pages/admin/MealDetail.jsx';
 import Meals from './pages/admin/Meals.jsx';
 import Outcomes from './pages/admin/Outcomes.jsx';
 import Predictions from './pages/admin/Predictions.jsx';
+import Reports from './pages/admin/Reports.jsx';
 import Simulation from './pages/admin/Simulation.jsx';
 import StudentMeals from './pages/student/StudentMeals.jsx';
 import StudentResponses from './pages/student/StudentResponses.jsx';
@@ -59,6 +60,7 @@ export function AppRoutes() {
             <Route path="meals/:id" element={<MealDetail />} />
             <Route path="predictions" element={<Predictions />} />
             <Route path="outcomes" element={<Outcomes />} />
+            <Route path="reports" element={<Reports />} />
             <Route path="dishes" element={<Dishes />} />
           </Route>
           {/* Student area (demo student S0001); enforced by every /api/student route on the server. */}

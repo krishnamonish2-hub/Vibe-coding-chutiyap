@@ -6,6 +6,7 @@ import { createMlClient } from './ml/client.js';
 import { errorHandler, notFound } from './middleware/error-handler.js';
 import { createAdminDishesRouter } from './routes/admin/dishes.js';
 import { createAdminMealsRouter } from './routes/admin/meals.js';
+import { createAdminReportsRouter } from './routes/admin/reports.js';
 import { createAdminSimulationRouter } from './routes/admin/simulation.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createHealthRouter, fetchMlHealth } from './routes/health.js';
@@ -34,6 +35,7 @@ export function createApp({ pool, config, getMlHealth, loginLimiter, simulation,
   app.locals.simulation = sim;
   app.use('/api/admin/simulation', createAdminSimulationRouter({ pool, config, simulation: sim }));
   app.use('/api/admin/meals', createAdminMealsRouter({ pool, config, ml: mlClient }));
+  app.use('/api/admin', createAdminReportsRouter({ pool, config }));
   app.use('/api/student', createStudentRouter({ pool, config }));
 
   app.use(notFound);

@@ -39,7 +39,9 @@ simulation engine (60 simulated days, accelerated or step-by-step clock, synthet
 simulation/meal API, the student voting API and the reset endpoint. Phase 4B connects the unmodified ML
 service: provisional (T-4h) and final (T-30m) predictions from Day 31, history features, retries and fixed-plan fallback. Phase 5 (in review) adds the admin
 UI: dashboard, simulation controls, meals, predictions, outcomes, dish renaming and the typed-RESET reset flow. Phase 6
-adds the demo student pages: vote (dishes or Not Eating) until the cutoff, and my responses. Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
+adds the demo student pages: vote (dishes or Not Eating) until the cutoff, and my responses. Phase 7 adds the
+Reports page (prediction accuracy vs synthetic actuals, waste vs the fixed plan) and the contract §3 training-data CSV
+export (download only; no automatic retraining). Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
 
 ## Prerequisites
 

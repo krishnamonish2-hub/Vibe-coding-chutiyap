@@ -6,6 +6,7 @@ const LINKS = [
   ['/admin/meals', 'Meals'],
   ['/admin/predictions', 'Predictions'],
   ['/admin/outcomes', 'Outcomes'],
+  ['/admin/reports', 'Reports'],
   ['/admin/dishes', 'Dishes'],
 ];
 
