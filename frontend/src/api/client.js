@@ -40,3 +40,4 @@ async function send(method, path, { body, signal } = {}) {
 export const apiGet = (path, options) => send('GET', path, options);
 export const apiPost = (path, body, options) => send('POST', path, { ...options, body });
 export const apiPatch = (path, body, options) => send('PATCH', path, { ...options, body });
+export const apiPut = (path, body, options) => send('PUT', path, { ...options, body });

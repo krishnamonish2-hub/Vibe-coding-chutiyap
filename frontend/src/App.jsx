@@ -3,8 +3,16 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { apiGet } from './api/client.js';
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx';
+import AdminLayout from './components/AdminLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Login from './pages/Login.jsx';
+import Dashboard from './pages/admin/Dashboard.jsx';
+import Dishes from './pages/admin/Dishes.jsx';
+import MealDetail from './pages/admin/MealDetail.jsx';
+import Meals from './pages/admin/Meals.jsx';
+import Outcomes from './pages/admin/Outcomes.jsx';
+import Predictions from './pages/admin/Predictions.jsx';
+import Simulation from './pages/admin/Simulation.jsx';
 
 const REFRESH_MS = 10000;
 
@@ -76,8 +84,11 @@ function Header() {
   );
 }
 
+// Signed-in landing page: admins go to the admin dashboard; students keep the Phase 3 welcome page (student pages are
+// Phase 7).
 function Home() {
   const { user } = useAuth();
+  if (user.role === 'admin') return <Navigate to="/admin" replace />;
   return (
     <>
       <section className="card" aria-labelledby="welcome-heading">
@@ -95,22 +106,39 @@ function Home() {
   );
 }
 
+// Routes without the router, so tests can render them inside a MemoryRouter.
+export function AppRoutes() {
+  return (
+    <AuthProvider>
+      <div className="banner" role="note">
+        Demonstration only: all data is synthetic and the prediction model was trained on synthetic data.
+      </div>
+      <main>
+        <Header />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          {/* Admin area: hidden from other roles here, and enforced by every /api/admin route on the server. */}
+          <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminLayout /></ProtectedRoute>}>
+            <Route index element={<Dashboard />} />
+            <Route path="simulation" element={<Simulation />} />
+            <Route path="meals" element={<Meals />} />
+            <Route path="meals/:id" element={<MealDetail />} />
+            <Route path="predictions" element={<Predictions />} />
+            <Route path="outcomes" element={<Outcomes />} />
+            <Route path="dishes" element={<Dishes />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </AuthProvider>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <div className="banner" role="note">
-          Demonstration only: all data is synthetic and the prediction model was trained on synthetic data.
-        </div>
-        <main>
-          <Header />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </AuthProvider>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

@@ -213,7 +213,11 @@ student's own response — shown only once `responded_at <= sim_now` (synthetic 
 while `voting_opens_at <= sim_now < voting_closes_at` (409 `voting_closed` otherwise); it replaces the student's
 (synthetic) response with `responded_at = sim_now`. The demo student is S0001.
 
-`GET /api/health` → `200 { status: "ok"|"degraded", backend: "ok", database: "ok", ml: { reachable, model_loaded,
+`GET /api/admin/meals?day=` (P5 addition, read-only) also returns per meal `provisional` / `final`
+(`{ status, reason, attempts }` of the current attempt, or `null`) and `outcomes` (totals of prepared, fixed-plan, actual,
+leftover kg, fixed-plan leftover kg, shortfall, `edited`; `null` before completion). Existing fields are unchanged.
+
+`GET /api/health` → `200 { status: "ok"|"degraded", backend: "ok", database: "ok", ml: { reachable, ready, model_loaded,
 model_version } }`; `503` with `database: "error"` when PostgreSQL is unavailable. ML down ⇒ `degraded` (still 200).
 
 ## 6. ML integration (P4B) — backend schema vs `ml/api/schemas.py`
@@ -281,6 +285,18 @@ round-half-to-even like pandas — reproduces the training CSV's `historical_dis
 Login · Admin: Simulation, Timeline, Meal detail, Dishes, Reports, Export (synthetic-data banner everywhere) ·
 Student (demo): Upcoming meals, My responses. P1 delivered the shell with a backend status panel; P3 adds the login
 page, sign-out, an auth context and protected routes (navigation only — the backend enforces every permission).
+
+**Admin UI (P5)** — `frontend/src/pages/admin/`, all under `/admin` (route guard for the admin role; every `/api/admin`
+call is authorised again by the backend): **Dashboard** (run status, simulated day/time, phase, next step, live ML
+readiness from `/api/health` and model info), **Simulation** (start form, play/resume with speed, pause, next step / end of
+day / jump to day — disabled while the accelerated clock runs — and reset behind a dialog that only enables when `RESET`
+is typed exactly), **Meals** (per day, all/upcoming/completed, prediction badges) and **Meal detail** (menu with display
+and ML names, frozen counts, every provisional/final attempt with status and reason, retry for non-ok attempts with
+`applies_to_kitchen`, per-dish outcomes vs the fixed-plan counterfactual), **Predictions** (all predicted meals, status
+counts, failures-only filter), **Outcomes** (learning vs prediction-period totals, per-meal table), **Dishes** (rename
+display names inline; ID and ML name read-only). Students keep the P3 welcome page (student pages are P7). Polling: 3 s
+for simulation status, 5 s for overviews while the clock runs. Component tests: `frontend/src/test/` (Vitest + jsdom +
+Testing Library, fetch mocked).
 
 ## 8. Configuration
 

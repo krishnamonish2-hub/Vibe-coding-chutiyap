@@ -36,8 +36,9 @@ Phases 1–3 are in place: backend and frontend skeletons, configuration, migrat
 PostgreSQL schema and synthetic seed (38 dishes, 1,000 students), sign-in with admin/student roles enforced by the
 backend, dish display-name renaming, the audit log and the reset service. Phase 4A (in review) adds the synthetic
 simulation engine (60 simulated days, accelerated or step-by-step clock, synthetic votes and outcomes), the admin
-simulation/meal API, the student voting API and the reset endpoint. Phase 4B (in review) connects the unmodified ML
-service: provisional (T-4h) and final (T-30m) predictions from Day 31, history features, retries and fixed-plan fallback. Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
+simulation/meal API, the student voting API and the reset endpoint. Phase 4B connects the unmodified ML
+service: provisional (T-4h) and final (T-30m) predictions from Day 31, history features, retries and fixed-plan fallback. Phase 5 (in review) adds the admin
+UI: dashboard, simulation controls, meals, predictions, outcomes, dish renaming and the typed-RESET reset flow. Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
 
 ## Prerequisites
 
@@ -71,6 +72,10 @@ shows it as not reachable and the rest of the app still works.
 
 ```bash
 cd backend && npm test
+```
+
+```bash
+cd frontend && npm test
 ```
 
 Database tests run when `DATABASE_URL` is set and skip otherwise; they work in a temporary schema that is dropped

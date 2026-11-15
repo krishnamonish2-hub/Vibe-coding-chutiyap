@@ -10,5 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: { port: 5173, proxy: { '/api': backend } },
     preview: { port: 4173, proxy: { '/api': backend } },
+    // Component tests (npm test): jsdom, no network — every test mocks fetch.
+    test: { environment: 'jsdom', include: ['src/**/*.test.{js,jsx}'], restoreMocks: true },
   };
 });

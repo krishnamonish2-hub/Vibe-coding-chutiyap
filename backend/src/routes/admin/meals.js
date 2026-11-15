@@ -70,14 +70,33 @@ export function createAdminMealsRouter({ pool, config, ml }) {
   const router = Router();
   router.use(requireAuth({ pool, config }), requireRole('admin'));
 
+  // Meal list. Phase 5 adds READ-ONLY summary fields for the admin overview screens (no behaviour change):
+  //   provisional / final: the current prediction attempt per kind ({ status, reason, attempts }) or null if none exists
+  //   outcomes: totals over the meal's dishes (prepared, fixed-plan, actual, leftovers, shortfall) or null before completion
   router.get('/', async (req, res) => {
     const { day } = parseOrThrow(DayQuery, req.query);
     const runId = await currentRunId(pool);
     const { rows } = await pool.query(
-      `SELECT id, day_number AS day, date, meal_type, phase, status, serve_at,
-              prov_total_responses, final_total_responses, headcount
-         FROM meals WHERE run_id = $1 AND ($2::int IS NULL OR day_number = $2)
-        ORDER BY serve_at`, [runId, day ?? null]);
+      `SELECT m.id, m.day_number AS day, m.date, m.meal_type, m.phase, m.status, m.serve_at,
+              m.prov_total_responses, m.final_total_responses, m.headcount,
+              (SELECT json_build_object('status', r.status, 'reason', r.error_detail->>'reason', 'attempts',
+                        (SELECT count(*)::int FROM prediction_requests a WHERE a.meal_id = m.id AND a.kind = 'provisional'))
+                 FROM prediction_requests r WHERE r.meal_id = m.id AND r.kind = 'provisional' AND r.is_current) AS provisional,
+              (SELECT json_build_object('status', r.status, 'reason', r.error_detail->>'reason', 'attempts',
+                        (SELECT count(*)::int FROM prediction_requests a WHERE a.meal_id = m.id AND a.kind = 'final'))
+                 FROM prediction_requests r WHERE r.meal_id = m.id AND r.kind = 'final' AND r.is_current) AS final,
+              (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE json_build_object(
+                        'dishes', count(*)::int,
+                        'prepared_servings', sum(o.prepared_servings)::int,
+                        'static_plan_servings', sum(o.static_plan_servings)::int,
+                        'actual_consumers', sum(o.actual_consumers)::int,
+                        'leftover_kg', round(sum(o.leftover_kg)::numeric, 1)::float8,
+                        'static_plan_leftover_kg', round(sum(o.static_plan_leftover_kg)::numeric, 1)::float8,
+                        'shortfall_servings', sum(o.shortfall_servings)::int,
+                        'edited', bool_or(o.source = 'admin')) END
+                 FROM dish_outcomes o WHERE o.meal_id = m.id) AS outcomes
+         FROM meals m WHERE m.run_id = $1 AND ($2::int IS NULL OR m.day_number = $2)
+        ORDER BY m.serve_at`, [runId, day ?? null]);
     res.json({ meals: rows });
   });
 
