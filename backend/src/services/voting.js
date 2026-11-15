@@ -1,7 +1,12 @@
 // Student voting (R-07, D8, D11, Phase 4A decision 3).
 //
 // * A vote is accepted only while voting_opens_at <= sim_now < voting_closes_at (the cutoff is T-30m); otherwise 409.
-//   The meal row is locked (FOR UPDATE), so a vote and the close-voting step can never interleave.
+//   Only the MEAL row is locked (FOR UPDATE) — not the run row — so a vote never waits for another meal's simulation
+//   step (or its ML call). The provisional and close-voting steps of this meal also lock this meal row, so a vote and
+//   those steps are strictly serialised. sim_now is read AFTER the meal lock is held: if a step of this meal ran first,
+//   the vote sees its committed status and clock.
+// * A vote recorded after this meal's provisional snapshot (status provisional_taken) is stamped strictly after T-4h
+//   (at least provisional_at + 1 s), so stored timestamps always agree with the frozen provisional counts.
 // * "eating" needs at least one dish from that meal's menu; "not_eating" has no dishes. Both count as responses.
 // * The demo student is linked to S0001. Synthetic votes are generated ahead of time with future responded_at, so a
 //   student only sees their own response once responded_at <= sim_now. A student's vote replaces any existing
@@ -12,8 +17,8 @@ import { ApiError } from '../middleware/error-handler.js';
 
 const OPEN_STATUSES = ['voting_open', 'provisional_taken'];
 
-async function currentRun(db, lock = false) {
-  const { rows } = await db.query(`SELECT id, sim_now FROM simulation_runs ORDER BY id LIMIT 1${lock ? ' FOR SHARE' : ''}`);
+async function currentRun(db) {
+  const { rows } = await db.query('SELECT id, sim_now FROM simulation_runs ORDER BY id LIMIT 1');
   return rows[0] ?? null;
 }
 
@@ -57,14 +62,23 @@ export async function listUpcomingMeals(db, studentId) {
 
 export async function submitResponse(pool, studentId, mealId, { response, dishIds = [] }) {
   return withTransaction(pool, async (client) => {
-    const run = await currentRun(client, true);
-    if (!run) throw new ApiError(404, 'no_simulation_run', 'There is no simulation run');
-    const { rows } = await client.query('SELECT * FROM meals WHERE id = $1 AND run_id = $2 FOR UPDATE', [mealId, run.id]);
+    const { rows } = await client.query(
+      'SELECT * FROM meals WHERE id = $1 AND run_id = (SELECT id FROM simulation_runs ORDER BY id LIMIT 1) FOR UPDATE',
+      [mealId]);
     const meal = rows[0];
-    if (!meal) throw new ApiError(404, 'meal_not_found', `No meal ${mealId}`);
+    if (!meal) {
+      if (!(await currentRun(client))) throw new ApiError(404, 'no_simulation_run', 'There is no simulation run');
+      throw new ApiError(404, 'meal_not_found', `No meal ${mealId}`);
+    }
+    const run = await currentRun(client); // read after the meal lock: any step of this meal has committed
+    if (!run) throw new ApiError(404, 'no_simulation_run', 'There is no simulation run');
     const open = OPEN_STATUSES.includes(meal.status)
       && meal.voting_opens_at <= run.sim_now && run.sim_now < meal.voting_closes_at;
     if (!open) throw new ApiError(409, 'voting_closed', 'Voting is not open for this meal');
+    let respondedAt = run.sim_now;
+    if (meal.status === 'provisional_taken' && respondedAt <= meal.provisional_at) {
+      respondedAt = new Date(meal.provisional_at.getTime() + 1000);
+    }
 
     if (response === 'eating') {
       const { rows: menu } = await client.query('SELECT dish_id FROM meal_dishes WHERE meal_id = $1', [mealId]);
@@ -81,12 +95,12 @@ export async function submitResponse(pool, studentId, mealId, { response, dishId
       `INSERT INTO meal_responses (meal_id, student_id, response, responded_at) VALUES ($1, $2, $3, $4)
        ON CONFLICT (meal_id, student_id) DO UPDATE SET response = EXCLUDED.response, responded_at = EXCLUDED.responded_at
        RETURNING id`,
-      [mealId, studentId, response, run.sim_now]);
+      [mealId, studentId, response, respondedAt]);
     if (response === 'eating') {
       await client.query(
         'INSERT INTO response_picks (response_id, meal_id, dish_id) SELECT $1, $2, unnest($3::text[])',
         [saved.id, mealId, dishIds]);
     }
-    return ownResponse(client, mealId, studentId, run.sim_now);
+    return ownResponse(client, mealId, studentId, respondedAt);
   });
 }

@@ -8,6 +8,7 @@
 // * After a restart a run left 'running' is set to 'paused' (recoverOnStartup); all state is in the database.
 
 import { withTransaction } from '../db/transaction.js';
+import { createDisabledMlClient } from '../ml/client.js';
 import { ApiError } from '../middleware/error-handler.js';
 import { recordAudit } from '../services/audit.js';
 import { resetSimulation } from '../services/simulation-reset.js';
@@ -17,7 +18,7 @@ import { dayNumberAt, startOfDay } from './schedule.js';
 const busyError = () => new ApiError(409, 'simulation_busy', 'Another simulation operation is in progress');
 const noRunError = () => new ApiError(404, 'no_simulation_run', 'There is no simulation run');
 
-export function createSimulationController({ pool, tickMs = 1000, log = console }) {
+export function createSimulationController({ pool, ml = createDisabledMlClient(), tickMs = 1000, log = console }) {
   let locked = false;
   const waiters = [];
   let timer = null;
@@ -45,7 +46,7 @@ export function createSimulationController({ pool, tickMs = 1000, log = console 
 
   async function status() {
     const run = await loadRun(pool);
-    if (!run) return { run: null, clock_running: false, last_clock_error: lastClockError };
+    if (!run) return { run: null, clock_running: false, last_clock_error: lastClockError, ml: ml.status() };
     const day = Math.max(0, dayNumberAt(run.start_date, run.sim_now));
     const pending = await nextPendingStep(pool, run.id);
     const { rows: [m] } = await pool.query(
@@ -64,6 +65,7 @@ export function createSimulationController({ pool, tickMs = 1000, log = console 
       meals: m,
       clock_running: running,
       last_clock_error: lastClockError,
+      ml: ml.status(),
     };
   }
 
@@ -109,7 +111,7 @@ export function createSimulationController({ pool, tickMs = 1000, log = console 
         target = startOfDay(run.start_date, spec.day);
       }
       const end = await runEndAt(pool, run.id);
-      const executed = await advanceTo(pool, run.id, target > end ? end : target);
+      const executed = await advanceTo(pool, run.id, target > end ? end : target, { ml });
       return { steps_executed: executed };
     });
   }
@@ -119,7 +121,7 @@ export function createSimulationController({ pool, tickMs = 1000, log = console 
       const run = await loadRun(pool);
       if (!run || run.status !== 'running') { running = false; return; }
       const target = new Date(run.sim_now.getTime() + run.speed_sim_minutes * 60_000);
-      await advanceTo(pool, run.id, target);
+      await advanceTo(pool, run.id, target, { ml });
       const after = await loadRun(pool);
       if (!after || after.status !== 'running') running = false;
     });

@@ -36,7 +36,8 @@ Phases 1–3 are in place: backend and frontend skeletons, configuration, migrat
 PostgreSQL schema and synthetic seed (38 dishes, 1,000 students), sign-in with admin/student roles enforced by the
 backend, dish display-name renaming, the audit log and the reset service. Phase 4A (in review) adds the synthetic
 simulation engine (60 simulated days, accelerated or step-by-step clock, synthetic votes and outcomes), the admin
-simulation/meal API, the student voting API and the reset endpoint; ML predictions follow in Phase 4B. Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
+simulation/meal API, the student voting API and the reset endpoint. Phase 4B (in review) connects the unmodified ML
+service: provisional (T-4h) and final (T-30m) predictions from Day 31, history features, retries and fixed-plan fallback. Later phases are listed in [docs/architecture.md](docs/architecture.md#3-phase-map).
 
 ## Prerequisites
 
@@ -73,7 +74,12 @@ cd backend && npm test
 ```
 
 Database tests run when `DATABASE_URL` is set and skip otherwise; they work in a temporary schema that is dropped
-afterwards. CI runs them against a PostgreSQL 16 service container. CI never starts the ML service.
+afterwards. CI runs them against a PostgreSQL 16 service container. CI never starts the ML service: ML behaviour is
+tested against a mock. To smoke-test the real ML service locally (started with its own documented setup):
+
+```bash
+cd backend && ML_LIVE_TESTS=1 ML_API_URL=http://127.0.0.1:8001 npm test -- tests/ml-live.test.js
+```
 
 ## Ground rules
 

@@ -201,14 +201,22 @@ describe.skipIf(!DATABASE_URL)('simulation engine', { timeout: 60_000 }, () => {
     await first;
   });
 
-  it('runs the full 60 days: all 180 meals completed, run completed, no predictions fabricated, static kitchen plan', async () => {
+  it('runs the full 60 days without ML: all 180 meals completed, predictions recorded as unavailable, none fabricated, fixed kitchen plan', async () => {
     await sim.start({ seed: 42 }, null);
     await sim.advance({ to: 'day', day: 60 });
     await sim.advance({ to: 'end_of_day' });
     const s = await sim.status();
     expect([s.run.status, s.meals.completed, s.next_step]).toEqual(['completed', 180, null]);
     expect(s.run.sim_now).toBe('2026-09-03T20:15:00.000Z'); // Day 60 dinner completes
-    expect((await one('SELECT count(*)::int n FROM prediction_requests')).n).toBe(0);
+    // No ML client configured: every Day 31+ provisional and final prediction is recorded as unavailable (with the
+    // reason), nothing is predicted, and the kitchen falls back to the fixed plan (D5). Learning meals have no rows.
+    expect(await all(`SELECT kind, status, error_detail->>'reason' AS reason, count(*)::int AS n
+      FROM prediction_requests GROUP BY 1, 2, 3 ORDER BY 1`)).toEqual([
+      { kind: 'final', status: 'unavailable', reason: 'ml_not_configured', n: 90 },
+      { kind: 'provisional', status: 'unavailable', reason: 'ml_not_configured', n: 90 }]);
+    expect((await one(`SELECT count(*)::int n FROM prediction_requests r JOIN meals m ON m.id = r.meal_id
+      WHERE m.phase = 'learning'`)).n).toBe(0);
+    expect((await one('SELECT count(*)::int n FROM prediction_items')).n).toBe(0);
     expect((await one('SELECT count(*)::int n FROM dish_outcomes WHERE prepared_servings <> static_plan_servings')).n).toBe(0);
     expect((await one("SELECT count(*)::int n FROM meals WHERE phase = 'active' AND status = 'completed'")).n).toBe(90);
     const e = await errOf(sim.advance({ to: 'next_step' }));

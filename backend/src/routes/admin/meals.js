@@ -1,5 +1,6 @@
 // Admin meal views and outcome editing (Phase 4A). Admin role only, enforced on the server.
-// Predictions are shown from Phase 4B; until then `predictions` is always an empty list (nothing is fabricated).
+// `predictions` lists every stored ML attempt (provisional and final, all attempts, with status and reason); learning
+// meals have none. Fallback (fixed-plan) quantities are outcomes, never predictions.
 
 import { Router } from 'express';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { ApiError } from '../../middleware/error-handler.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { recordAudit } from '../../services/audit.js';
+import { retryPrediction } from '../../services/predictions.js';
 
 const DayQuery = z.object({ day: z.coerce.number().int().min(1).max(366).optional() }).strict();
 
@@ -43,8 +45,14 @@ async function mealDetail(db, mealId) {
        LEFT JOIN dish_outcomes o ON o.meal_id = md.meal_id AND o.dish_id = md.dish_id
       WHERE md.meal_id = $1 ORDER BY md.position`, [mealId]);
   const { rows: predictions } = await db.query(
-    'SELECT id, kind, attempt, status, is_current, model_version, trained_on, sim_at FROM prediction_requests WHERE meal_id = $1 ORDER BY kind, attempt',
+    `SELECT r.id, r.kind, r.attempt, r.status, r.is_current, r.http_status, r.error_detail->>'reason' AS reason,
+            r.model_version, r.trained_on, r.sim_at, r.wall_at, r.request_payload->>'total_responses' AS total_responses,
+            coalesce((SELECT json_agg(json_build_object('dish_id', i.dish_id, 'interested_taps', i.interested_taps,
+                       'predicted_consumers', i.predicted_consumers, 'warnings', i.warnings) ORDER BY i.dish_id)
+                        FROM prediction_items i WHERE i.request_id = r.id), '[]') AS items
+       FROM prediction_requests r WHERE r.meal_id = $1 ORDER BY r.kind DESC, r.attempt`,
     [mealId]);
+  for (const p of predictions) p.total_responses = p.total_responses === null ? null : Number(p.total_responses);
   return {
     meal: {
       id: m.id, day: m.day_number, date: m.date, meal_type: m.meal_type, phase: m.phase, status: m.status,
@@ -58,7 +66,7 @@ async function mealDetail(db, mealId) {
   };
 }
 
-export function createAdminMealsRouter({ pool, config }) {
+export function createAdminMealsRouter({ pool, config, ml }) {
   const router = Router();
   router.use(requireAuth({ pool, config }), requireRole('admin'));
 
@@ -75,6 +83,19 @@ export function createAdminMealsRouter({ pool, config }) {
 
   router.get('/:id', async (req, res) => {
     res.json(await mealDetail(pool, req.params.id));
+  });
+
+  // Administrator retry of a provisional/final prediction whose current attempt is not 'ok': re-sends the stored
+  // request with the same policy (one automatic retry on 500/503/timeout). A late final retry is recorded only;
+  // `applies_to_kitchen` says whether this result will be used to cook the meal.
+  router.post('/:id/predictions/:kind/retry', async (req, res) => {
+    const { kind } = parseOrThrow(z.object({ kind: z.enum(['provisional', 'final']) }), { kind: req.params.kind });
+    await currentRunId(pool);
+    const row = await retryPrediction(pool, ml, { mealId: req.params.id, kind, userId: req.user.id, withTransaction });
+    // The kitchen uses a prediction only if it is a successful FINAL prediction for a meal that has not been completed
+    // yet; completed meals are never recalculated.
+    const appliesToKitchen = kind === 'final' && row.status === 'ok' && row.mealStatus !== 'completed';
+    res.json({ attempt: row.attempt, status: row.status, applies_to_kitchen: appliesToKitchen, ...(await mealDetail(pool, req.params.id)) });
   });
 
   // Edit synthetic actuals of a completed meal (source becomes 'admin'); audited in the same transaction.

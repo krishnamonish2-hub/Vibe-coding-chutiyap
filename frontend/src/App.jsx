@@ -44,14 +44,15 @@ function StatusPanel() {
   if (loading) return <p>Checking services…</p>;
   if (error) return <p className="error">Backend: {error}</p>;
   const { ml } = health;
+  // Same strict readiness rule as the backend: status "ok" AND model_loaded (L1).
   const mlText = !ml.reachable ? 'not reachable'
-    : ml.model_loaded ? `model loaded (${ml.model_version})` : 'reachable, model not loaded';
+    : ml.ready ? `ready (${ml.model_version})` : 'reachable, not ready';
   return (
     <table className="status">
       <tbody>
         <StatusRow label="Backend" ok text="ok" />
         <StatusRow label="Database" ok={health.database === 'ok'} text={health.database} />
-        <StatusRow label="ML service" ok={ml.reachable && ml.model_loaded} text={mlText} />
+        <StatusRow label="ML service" ok={ml.ready === true} text={mlText} />
       </tbody>
     </table>
   );

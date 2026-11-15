@@ -3,9 +3,13 @@
 // No event table: the next step of every meal follows from its status and timestamps. Each step runs in its own
 // transaction, locks the run row, re-checks the meal status (conditional update), does its work and moves sim_now to
 // the step time. A step that already ran is simply not found again, so steps can never run twice, and a crash
-// mid-step rolls back cleanly. Phase 4A: no ML calls; Day 31+ meals use the static kitchen plan (D5 fallback).
+// mid-step rolls back cleanly. Phase 4B: on Day 31+ meals the provisional (T-4h) and final (T-30m) steps call the ML
+// service inside the same transaction; the kitchen uses final × 1.05 when the current final prediction is 'ok',
+// otherwise the fixed plan (D5). Learning meals (Days 1–30) never call the ML service.
 
 import { withTransaction } from '../db/transaction.js';
+import { createDisabledMlClient } from '../ml/client.js';
+import { currentFinalPredictions, predictForStep } from '../services/predictions.js';
 import { TOTAL_STUDENTS } from './catalog.js';
 import { DEFAULT_CALENDAR, buildCalendar } from './calendar.js';
 import { hiddenState } from './hidden-state.js';
@@ -188,7 +192,6 @@ async function stepProvisional(client, run, meal) {
      SELECT $1, * FROM unnest($2::text[], $3::int[])`,
     [meal.id, counts.taps.map((t) => t.dish_id), counts.taps.map((t) => t.taps)],
   );
-  // Phase 4B adds the provisional ML prediction here (Day 31+ only).
   return { prov_total_responses: counts.total, prov_not_eating: counts.notEating };
 }
 
@@ -200,13 +203,14 @@ async function stepCloseVoting(client, run, meal) {
       WHERE c.meal_id = $1 AND c.dish_id = t.dish_id`,
     [meal.id, counts.taps.map((t) => t.dish_id), counts.taps.map((t) => t.taps)],
   );
-  // Phase 4B adds the final ML prediction here (Day 31+ only).
   return { final_total_responses: counts.total, final_not_eating: counts.notEating };
 }
 
 async function stepComplete(client, run, meal) {
   const ctx = await loadMealContext(client, run, meal);
-  const outcome = generateOutcomes(ctx, hiddenState(ctx), null); // 4A: no predictions -> static plan (D5)
+  // D5: final × 1.05 when the current final prediction is 'ok' (Day 31+), otherwise the fixed plan.
+  const finals = meal.phase === 'active' ? await currentFinalPredictions(client, meal.id) : null;
+  const outcome = generateOutcomes(ctx, hiddenState(ctx), finals);
   const cols = ['dish_id', 'actual_consumers', 'prepared_servings', 'static_plan_servings', 'leftover_kg',
     'static_plan_leftover_kg', 'shortfall_servings', 'avg_rating'];
   await client.query(
@@ -224,8 +228,15 @@ const STEP_HANDLERS = {
   complete: stepComplete,
 };
 
+// ML prediction made after a step froze its counts (same transaction).
+const PREDICTION_AFTER_STEP = { provisional: 'provisional', close_voting: 'final' };
+
 // Executes one step in its own transaction. Returns false if the step had already been executed (no-op).
-export async function executeStep(pool, runId, pending) {
+export async function executeStep(pool, runId, pending, { ml = createDisabledMlClient() } = {}) {
+  // ML readiness (health, model-info, contract) is checked BEFORE the transaction, so those requests never hold the
+  // run/meal locks (H1). Only POST /predict attempts run inside the step's transaction.
+  const predictionKind = PREDICTION_AFTER_STEP[pending.step.name];
+  const readiness = predictionKind && pending.meal.phase === 'active' ? await ml.checkReady() : null;
   return withTransaction(pool, async (client) => {
     const run = await loadRun(client, { forUpdate: true });
     if (!run || Number(run.id) !== Number(runId)) return false;
@@ -237,6 +248,11 @@ export async function executeStep(pool, runId, pending) {
     const sets = ['status = $2', ...Object.keys(extra).map((k, i) => `${k} = $${i + 3}`)];
     await client.query(`UPDATE meals SET ${sets.join(', ')} WHERE id = $1`,
       [meal.id, pending.step.to, ...Object.values(extra)]);
+
+    if (predictionKind && meal.phase === 'active') {
+      const { rows: [frozen] } = await client.query('SELECT * FROM meals WHERE id = $1', [meal.id]);
+      await predictForStep(client, ml, run, frozen, predictionKind, { readiness });
+    }
     await client.query('UPDATE simulation_runs SET sim_now = GREATEST(sim_now, $2) WHERE id = $1', [run.id, pending.dueAt]);
 
     if (pending.step.name === 'complete') {
@@ -249,12 +265,12 @@ export async function executeStep(pool, runId, pending) {
 }
 
 // Executes every step due at or before `target`, in order, then moves the clock to `target` (capped at the run end).
-export async function advanceTo(pool, runId, target) {
+export async function advanceTo(pool, runId, target, { ml } = {}) {
   let executed = 0;
   for (;;) {
     const pending = await nextPendingStep(pool, runId);
     if (!pending || pending.dueAt > target) break;
-    if (await executeStep(pool, runId, pending)) executed += 1;
+    if (await executeStep(pool, runId, pending, { ml })) executed += 1;
   }
   const end = await runEndAt(pool, runId);
   const clockTo = target > end ? end : target;

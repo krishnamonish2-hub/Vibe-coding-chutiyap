@@ -9,8 +9,8 @@ import { fetchMlHealth } from '../src/routes/health.js';
 
 const okPool = { query: async () => ({ rows: [{ '?column?': 1 }] }) };
 const brokenPool = { query: async () => { throw new Error('connection refused'); } };
-const mlOk = async () => ({ reachable: true, model_loaded: true, model_version: 'rf-v1-synthetic' });
-const mlDown = async () => ({ reachable: false, model_loaded: false, model_version: null });
+const mlOk = async () => ({ reachable: true, ready: true, model_loaded: true, model_version: 'rf-v1-synthetic' });
+const mlDown = async () => ({ reachable: false, ready: false, model_loaded: false, model_version: null });
 
 describe('GET /api/health', () => {
   it('reports ok when the database and the ML model are available', async () => {
@@ -18,7 +18,7 @@ describe('GET /api/health', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       status: 'ok', backend: 'ok', database: 'ok',
-      ml: { reachable: true, model_loaded: true, model_version: 'rf-v1-synthetic' },
+      ml: { reachable: true, ready: true, model_loaded: true, model_version: 'rf-v1-synthetic' },
     });
   });
 
@@ -30,7 +30,7 @@ describe('GET /api/health', () => {
   });
 
   it('reports degraded when the ML service is up but its model is not loaded', async () => {
-    const mlDegraded = async () => ({ reachable: true, model_loaded: false, model_version: null });
+    const mlDegraded = async () => ({ reachable: true, ready: false, model_loaded: false, model_version: null });
     const res = await request(createApp({ pool: okPool, config: testConfig(), getMlHealth: mlDegraded })).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('degraded');
@@ -70,6 +70,7 @@ describe('fetchMlHealth (against a local stub, not the real ML service)', () => 
   const replies = {
     '/ok/health': [200, { status: 'ok', model_loaded: true, model_version: 'rf-v1-synthetic' }],
     '/degraded/health': [200, { status: 'degraded', model_loaded: false, model_version: null }],
+    '/inconsistent/health': [200, { status: 'degraded', model_loaded: true, model_version: 'x' }],
     '/error/health': [500, { detail: 'internal error' }],
   };
 
@@ -90,12 +91,19 @@ describe('fetchMlHealth (against a local stub, not the real ML service)', () => 
 
   it('reads model_loaded and model_version', async () => {
     expect(await fetchMlHealth(`${baseUrl}/ok`, 1000))
-      .toEqual({ reachable: true, model_loaded: true, model_version: 'rf-v1-synthetic' });
+      .toEqual({ reachable: true, ready: true, model_loaded: true, model_version: 'rf-v1-synthetic' });
   });
 
   it('reports a degraded ML service as reachable without a model', async () => {
     expect(await fetchMlHealth(`${baseUrl}/degraded`, 1000))
-      .toEqual({ reachable: true, model_loaded: false, model_version: null });
+      .toEqual({ reachable: true, ready: false, model_loaded: false, model_version: null });
+  });
+
+  it('uses the strict readiness rule: status must be ok as well as model_loaded (same as the ML client)', async () => {
+    expect(await fetchMlHealth(`${baseUrl}/inconsistent`, 1000))
+      .toEqual({ reachable: true, ready: false, model_loaded: true, model_version: 'x' });
+    const app = createApp({ pool: okPool, config: testConfig(), getMlHealth: () => fetchMlHealth(`${baseUrl}/inconsistent`, 1000) });
+    expect((await request(app).get('/api/health')).body.status).toBe('degraded');
   });
 
   it('treats a non-200 answer as unreachable', async () => {

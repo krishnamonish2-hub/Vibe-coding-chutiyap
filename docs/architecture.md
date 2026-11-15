@@ -216,7 +216,7 @@ while `voting_opens_at <= sim_now < voting_closes_at` (409 `voting_closed` other
 `GET /api/health` → `200 { status: "ok"|"degraded", backend: "ok", database: "ok", ml: { reachable, model_loaded,
 model_version } }`; `503` with `database: "error"` when PostgreSQL is unavailable. ML down ⇒ `degraded` (still 200).
 
-## 6. ML integration (P5) — backend schema vs `ml/api/schemas.py`
+## 6. ML integration (P4B) — backend schema vs `ml/api/schemas.py`
 
 The backend validates every request with a Zod schema that is never looser than the ML Pydantic schema
 (`extra="forbid"`, strict types, strings trimmed then 1–100 characters, `meal_type` literal not trimmed, finite floats,
@@ -244,6 +244,37 @@ JSON integers accepted for floats, `null` rejected for booleans).
 meal type, 2 dp; `previous_leftover_kg` most recent same dish + meal type, 1 dp; `previous_meal_attendance` previous
 slot headcount). Missing values are omitted. Only `POST /predict` is used. 422 → `error` (no retry); 503/500/timeout →
 one retry → `unavailable`. `/health` is checked via `model_loaded` (cached 60 s).
+
+**Implementation (P4B).** `backend/src/ml/client.js` (health readiness = `status "ok"` AND `model_loaded`, cached 60 s
+wall-clock; `/model-info` read once; `POST /predict` with a 10 s timeout), `request-schema.js` / `response-schema.js`
+(strict Zod mirrors; the response must echo `meal_id`, dish order, `dish_id`, `interested_taps`, and give integer
+predictions in `[0, total_students]`), `backend/src/services/history.js` (same-run, completed, strictly earlier meals;
+round-half-to-even like pandas — reproduces the training CSV's `historical_dish_demand`), `backend/src/services/predictions.js`.
+
+* **When:** after the provisional step (T-4h, counts with `responded_at <= T-4h`) and the close-voting step (T-30m, frozen
+  final counts) of Day 31+ meals. Readiness — `/health` (strict rule `isMlHealthReady`: `status "ok"` AND `model_loaded`,
+  cached 60 s), `/model-info` (read once) and `contract_version == "0.3"` — is checked **before** the step's transaction;
+  only the `POST /predict` attempts run **inside** it (owner-approved: a crash rolls the step and its attempts back
+  together; at most 2 × 10 s of attempts hold that meal's row lock). Learning meals are never sent.
+* **Voting during a step:** a vote locks only its meal row (not the run row), so it never waits for another meal's step or
+  ML call; a vote on the same meal is serialised behind that meal's step. A vote recorded after the provisional
+  snapshot is stamped at least `provisional_at + 1 s`, so timestamps always agree with the frozen provisional counts.
+* **Records:** every HTTP attempt is a `prediction_requests` row (attempt 1, 2, …), one current per (meal, kind); the
+  validated request, the validated response, HTTP status, model version, `trained_on`, simulated time (`sim_at`) and wall
+  time (`wall_at` = `clock_timestamp()` of each attempt, not the transaction start) are stored; every menu dish must have
+  a frozen count (a missing one is recorded as `request_invalid`, never dropped); `prediction_items` hold per-dish outputs plus the history values sent. Provisional and final never
+  overwrite each other.
+* **Statuses / reasons (`error_detail.reason`):** `ok`; `error` = `request_invalid`, `ml_rejected_request` (422), other
+  `http_4xx`, `invalid_response` — no retry; `unavailable` = `ml_not_configured`, `health_unreachable`,
+  `model_not_loaded`, `model_info_unavailable`, `contract_mismatch` (no `/predict` call, owner-approved), `http_500`, `http_503`, `timeout`, `unreachable` — after
+  exactly one automatic retry for the last four.
+* **Kitchen:** prepared = current `ok` final × 1.05; otherwise the fixed plan. The fixed plan is always stored too.
+* **Admin retry** `POST /api/admin/meals/:id/predictions/:kind/retry` re-sends the stored request (same policy) when the
+  current attempt is not `ok`; audited as `prediction.retry`. It re-checks health if the cached result says "not ready".
+  The response field `applies_to_kitchen` is true only for a successful final prediction of a meal not yet completed.
+  A late final retry after completion is recorded only — outcomes are not recalculated (owner-approved).
+* **Tests:** mock ML service (`backend/tests/helpers/mock-ml.js`) in CI; `backend/tests/ml-live.test.js` runs against the
+  real, unmodified service only with `ML_LIVE_TESTS=1`.
 
 ## 7. Frontend pages
 
