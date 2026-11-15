@@ -54,6 +54,16 @@ The run clock starts at **Day 0 19:30** (simulated, UTC). Days 1–60 have three
 Invariant: `previous.completes_at < next.provisional_at` (smallest gap 15 min, breakfast → lunch), so both
 predictions of a meal see identical history. Checked at startup and in tests.
 
+**Implementation (P4A):** `backend/src/simulation/` — `rng.js` (seeded sfc32 streams), `behaviour.js`, `calendar.js`,
+`menu.js`, `hidden-state.js`, `votes.js`, `outcomes.js` (ported read-only from `ml/src/generate_data.py`), `schedule.js`,
+`engine.js` (run creation + steps), `controller.js` (lock, 409 rules, accelerated clock, reset, restart recovery).
+All menus are created at start; a meal's hidden state is re-derived from (run seed, meal index), so nothing hidden is
+stored. Synthetic votes: each student responds with p_respond; a responder attends with p_attend + 0.08 or answers
+Not Eating; an attending responder picks each dish with min(0.98, p_tap × tap_bias); zero picks allowed (D8).
+In P4A every meal (Days 1–60) is prepared with the static plan and no prediction rows are created.
+Calibration (`backend/tests/simulation-calibration.test.js`, 90 days, about 8 s): distributions are compared with the
+training CSV (read-only) — see the decision log for the statistical tests used.
+
 **Scheduler:** no event table. Due steps are derived from meal timestamps, ordered by `(due_at, meal order, step order)`,
 each run in its own transaction as a conditional status update (`… WHERE status = <expected>`), which prevents
 duplicates. Manual advance (`next_step`, `end_of_day`, `day N`) and an accelerated loop (`await step; setTimeout 1 s`)
@@ -67,8 +77,9 @@ seeded PRNG `(run seed, meal index)`, so results do not depend on how time was a
 | P1 | Foundation: backend + frontend skeletons, config, DB pool + migration runner, health endpoint, CI | Phase 0 |
 | P2 | Schema migration (`backend/db/migrations/001_schema.sql`) + seed (38 dishes, 1,000 synthetic students) | P1 |
 | P3 | Auth, roles, admin + demo student accounts (needs password hashing), dish rename, audit log service | P2 |
-| P4 | Simulation engine (learning mode, no ML) + calibration tests | P2, P3 |
-| P5 | ML integration: client, request schema/builder, history, predictions, Day 31 activation, live contract test | P4 + ML service unchanged |
+| P4A | Simulation engine (no ML): clock + scheduler, 60-day lifecycle, synthetic votes, student voting API + cutoff, meal completion (static kitchen plan), admin simulation/meal routes, reset endpoint, calibration tests | P2, P3 |
+| P4B | ML integration: client, request schema/builder, history, provisional/final predictions, Day 31 activation, retry, live contract test | P4A + ML service unchanged |
+| P5 | (merged into P4B) | — |
 | P6 | Admin pages | P5 (simulation page after P4) |
 | P7 | Demo student pages/API | P3, P4 |
 | P8 | Reports + CSV export (contract §3) | P5 |
@@ -163,11 +174,11 @@ Phase 4 exposes it as `POST /api/admin/simulation/reset` and stops the scheduler
 | `GET /api/health` | public | **P1** |
 | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | any | P3 |
 | `GET /api/admin/dishes`, `PATCH /api/admin/dishes/:id` | admin | P3 |
-| `GET /api/admin/simulation`, `POST …/start`, `…/advance`, `…/play`, `…/pause`, `…/reset` | admin | P4 |
-| `GET /api/admin/meals?day=`, `GET /api/admin/meals/:id`, `PUT /api/admin/meals/:id/outcomes` | admin | P4 |
-| `POST /api/admin/meals/:id/predictions/:kind/retry` | admin | P5 |
+| `GET /api/admin/simulation`, `POST …/start`, `…/advance`, `…/play`, `…/pause`, `…/reset` | admin | P4A |
+| `GET /api/admin/meals?day=`, `GET /api/admin/meals/:id`, `PUT /api/admin/meals/:id/outcomes` | admin | P4A |
+| `POST /api/admin/meals/:id/predictions/:kind/retry` | admin | P4B |
 | `GET /api/admin/reports/accuracy`, `GET /api/admin/reports/waste`, `GET /api/admin/export/training.csv` | admin | P8 |
-| `GET /api/student/meals/upcoming`, `PUT /api/student/meals/:id/response` | student | P7 |
+| `GET /api/student/meals/upcoming`, `PUT /api/student/meals/:id/response` | student | P4A (pages in P7) |
 
 Errors: `{ "error": { "code", "message", "details?" } }`.
 
@@ -188,7 +199,19 @@ characters). `id` or `ml_dish_name` in the body → 400 `immutable_field`; any o
 name used by another dish (ignoring case) → 409 `display_name_taken`. A real change writes a `dish.rename` audit entry
 (`before`/`after` display and ML names) in the same transaction; renaming to the current name is a no-op.
 
-**Audit actions so far:** `user.create` (seed), `dish.rename`, `simulation.reset`, `simulation.reset_failed`.
+**Audit actions so far:** `user.create` (seed), `dish.rename`, `simulation.start`, `simulation.reset`, `simulation.reset_failed`, `meal.outcomes_edit`.
+
+**Simulation API (P4A).** `POST /start {seed?, start_date?, total_days? (31–366, default 60), speed_sim_minutes?, calendar?}`
+→ 201 (409 if a run exists). `POST /advance {to: "next_step" | "end_of_day" | "day", day?}` → 409 `clock_running` while the
+accelerated clock runs, 409 `simulation_busy` during another advance, 409 `simulation_completed` after Day 60, 400
+`invalid_day`. `POST /play {speed_sim_minutes?}`, `POST /pause`. `POST /reset {confirm: "RESET"}` stops the clock, then
+calls `resetSimulation()`. `PUT /api/admin/meals/:id/outcomes` edits a completed meal (`source = 'admin'`, audited).
+
+**Student voting API (P4A).** `GET /api/student/meals/upcoming` lists meals whose window is open, with the menu and the
+student's own response — shown only once `responded_at <= sim_now` (synthetic votes are generated ahead of time).
+`PUT /api/student/meals/:id/response` takes `{response: "eating", dish_ids: [≥1]}` or `{response: "not_eating"}`, only
+while `voting_opens_at <= sim_now < voting_closes_at` (409 `voting_closed` otherwise); it replaces the student's
+(synthetic) response with `responded_at = sim_now`. The demo student is S0001.
 
 `GET /api/health` → `200 { status: "ok"|"degraded", backend: "ok", database: "ok", ml: { reachable, model_loaded,
 model_version } }`; `503` with `database: "error"` when PostgreSQL is unavailable. ML down ⇒ `degraded` (still 200).
